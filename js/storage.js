@@ -4,7 +4,7 @@ import { planningDefaults } from './planning-defaults.js';
 // `version` permettra de migrer les données si leur structure change plus tard.
 
 const KEY = 'quotidien:data';
-const VERSION = 1;
+const VERSION = 2;
 
 function defaults() {
   return {
@@ -27,11 +27,15 @@ function load() {
     if (!raw) return defaults();
     const saved = JSON.parse(raw);
     const base = defaults();
-    return {
+    const out = {
       ...base, ...saved,
+      version: VERSION,
       settings: { ...base.settings, ...saved.settings },
       planning: { ...base.planning, ...saved.planning },
     };
+    // v2 : nouveaux horaires du modèle Bibliothèque (déjeuner 13h–14h30)
+    if ((saved.version || 1) < 2) out.planning.templates = base.planning.templates;
+    return out;
   } catch {
     return defaults();
   }

@@ -7,7 +7,9 @@ export function planningDefaults() {
     wakeBeforeFajr: 35, // minutes
     bedtime: '23:00',
     restPerMonth: 4, // jours de repos "autorisés" par mois (compteur)
-    commute: { bibliotheque: 40, cours: 65 }, // minutes de trajet
+    commute: { cours: 65 }, // minutes de trajet vers la fac
+    // Durées utilisées pour construire les jours de cours (minutes)
+    coursRules: { prep: 45, lunch: 45, dinner: 45, eveningWork: 120 },
 
     subjects: [
       { id: 'unix', name: 'Initiation à l\'environnement UNIX', short: 'UNIX', color: '#4a6fa5' },
@@ -59,11 +61,11 @@ export function planningDefaults() {
       bibliotheque: [
         { label: 'Petit-déjeuner et préparation', start: '07:15', end: '08:00', kind: 'routine' },
         { label: 'Repos', start: '08:00', end: '09:20', kind: 'repos' },
-        { label: 'Trajet', start: '09:20', end: '10:00', kind: 'trajet' },
-        { label: 'Bibliothèque', start: '10:00', end: '13:00', kind: 'travail' },
-        { label: 'Déjeuner', start: '13:00', end: '13:45', kind: 'repas' },
-        { label: 'Bibliothèque', start: '13:45', end: '20:00', kind: 'travail' },
-        { label: 'Trajet retour', start: '20:00', end: '20:40', kind: 'trajet' },
+        { label: 'Trajet', start: '09:20', end: '10:00', kind: 'trajet', away: true },
+        { label: 'Bibliothèque', start: '10:00', end: '13:00', kind: 'travail', away: true },
+        { label: 'Déjeuner', start: '13:00', end: '14:30', kind: 'repas', away: true },
+        { label: 'Bibliothèque', start: '14:30', end: '20:00', kind: 'travail', away: true },
+        { label: 'Trajet retour', start: '20:00', end: '20:40', kind: 'trajet', away: true },
         { label: 'Dîner', start: '21:00', end: '21:45', kind: 'repas' },
         { label: 'Repos', start: '21:45', end: '23:00', kind: 'repos' },
       ],

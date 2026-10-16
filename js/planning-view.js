@@ -1,13 +1,19 @@
 import { getData, update } from './storage.js';
 import { dateKey, addDays, parseKey, dayLabel, esc } from './util.js';
 import { PRAYERS, PRAYER_NAMES, prayerTimes } from './prayers.js';
-import { DAY_TYPES, buildDay, courseSlots, dayType, restDaysInMonth, toHHMM } from './planning-model.js';
+import { DAY_TYPES, buildDay, baseItems, toStored, courseSlots, dayType, restDaysInMonth, toHHMM } from './planning-model.js';
+import { openSheet, activityFields, readActivity } from './sheet.js';
+import * as edit from './planning-edit.js';
 
 let day = dateKey();
 
-// #planning, #planning/jour/AAAA-MM-JJ, #planning/reglages
+// #planning, #planning/jour/AAAA-MM-JJ, #planning/reglages,
+// #planning/modele/<type>, #planning/edt[/<id>], #planning/matieres
 export function render(el, [sub, arg]) {
   if (sub === 'reglages') return renderSettings(el);
+  if (sub === 'modele') return edit.renderTemplate(el, arg);
+  if (sub === 'edt') return edit.renderTimetable(el, arg);
+  if (sub === 'matieres') return edit.renderSubjects(el);
   if (sub === 'jour' && /^\d{4}-\d{2}-\d{2}$/.test(arg)) day = arg;
   return renderDay(el);
 }
@@ -19,7 +25,7 @@ function renderDay(el) {
   const { type, items } = buildDay(p, day);
   const month = day.slice(0, 7);
   const rest = restDaysInMonth(p, month);
-  const overridden = Boolean(p.days[day]?.type);
+  const overridden = Boolean(p.days[day]?.type || p.days[day]?.items);
   const hasCourses = courseSlots(p, day).length > 0;
   const now = new Date();
   const nowMin = day === dateKey() ? now.getHours() * 60 + now.getMinutes() : -1;
@@ -38,21 +44,27 @@ function renderDay(el) {
     </div>
     <p class="small muted rest-count ${rest > p.restPerMonth ? 'warn' : ''}">
       Repos ce mois-ci : <b>${rest} / ${p.restPerMonth}</b>
-      ${overridden ? ' · <button class="link" data-act="reset">Revenir au planning prévu</button>' : ''}
     </p>
+    ${overridden ? `<p class="small muted modified">${p.days[day]?.items ? 'Journée modifiée à la main' : 'Type de jour changé'} ·
+      <button class="link" data-act="reset">Revenir au planning prévu</button></p>` : ''}
 
     <div class="timeline">
       ${items.map((it, i) => row(it, items[i + 1], nowMin)).join('')}
-    </div>`;
+    </div>
+    <button class="btn secondary add-act" data-act="add">+ Ajouter une activité</button>
+    <p class="small muted center">Touche une activité pour la modifier, une prière pour la rattraper ou non.</p>`;
 
   el.onclick = e => {
-    const t = e.target.closest('[data-type],[data-act],[data-day]');
+    const t = e.target.closest('[data-type],[data-act],[data-day],[data-eid]');
     if (!t) return;
+    if (t.dataset.eid) return editActivity(el, Number(t.dataset.eid));
+    if (t.dataset.act === 'add') return editActivity(el, null);
     if (t.dataset.day) day = t.dataset.day;
     else if (t.dataset.type) {
       const auto = courseSlots(p, day).length ? 'cours' : 'bibliotheque';
-      setDay(d => { d.type = t.dataset.type === auto ? undefined : t.dataset.type; });
-    } else if (t.dataset.act === 'reset') setDay(d => { delete d.type; });
+      // changer de type repart du modèle de ce type
+      setDay(d => { d.type = t.dataset.type === auto ? undefined : t.dataset.type; delete d.items; });
+    } else if (t.dataset.act === 'reset') setDay(d => { for (const k in d) delete d[k]; });
     else if (t.dataset.act === 'week') day = addDays(day, Number(t.dataset.n) * 7);
     else if (t.dataset.act === 'prayer') {
       const name = t.dataset.prayer;
@@ -61,6 +73,30 @@ function renderDay(el) {
     }
     renderDay(el);
   };
+}
+
+// Modifier / ajouter une activité de ce jour : la journée est d'abord "figée" pour ne toucher qu'elle.
+function editActivity(el, eid) {
+  const p = getData().planning;
+  const list = p.days[day]?.items || baseItems(p, day).map(toStored);
+  const a = eid === null ? null : list[eid];
+  openSheet({
+    title: a ? 'Modifier l\'activité' : 'Nouvelle activité',
+    body: activityFields(a || {}) + '<p class="small muted">Ne change que cette journée.</p>',
+    onSave: f => {
+      const [act, err] = readActivity(f, a || {});
+      if (err) return err;
+      const next = [...list];
+      if (a) next[eid] = act; else next.push(act);
+      next.sort((x, y) => x.start.localeCompare(y.start));
+      setDay(d => { d.items = next; });
+      renderDay(el);
+    },
+    onDelete: a && (() => {
+      setDay(d => { d.items = list.filter((_, i) => i !== eid); });
+      renderDay(el);
+    }),
+  });
 }
 
 // Modifie (ou crée) la configuration du jour affiché, et nettoie si elle devient vide.
@@ -113,7 +149,8 @@ function row(it, next, nowMin) {
   const h = Math.max(48, Math.min(160, dur * 0.7));
   const style = it.color ? `style="--c:${it.color};min-height:${h}px"` : `style="min-height:${h}px"`;
   return `
-    <div class="tl-item k-${it.kind} ${current ? 'now' : ''} ${it.optional ? 'optional' : ''}" ${style}>
+    <div class="tl-item k-${it.kind} ${current ? 'now' : ''} ${it.optional ? 'optional' : ''} ${it.eid != null ? 'editable' : ''}"
+      ${it.eid != null ? `data-eid="${it.eid}" role="button" tabindex="0"` : ''} ${style}>
       <span class="tl-time">${toHHMM(it.start)}<small>${toHHMM(it.end)}</small></span>
       <span class="tl-body">
         <span class="tl-label">${esc(it.label)}</span>
@@ -172,8 +209,21 @@ function renderSettings(el) {
     <div class="section-title">Jours de cours</div>
     <div class="card">
       ${stepper('commute.cours', p.commute.cours, 'Trajet vers la fac')}
+      ${stepper('coursRules.prep', p.coursRules.prep, 'Préparation le matin')}
+      ${stepper('coursRules.lunch', p.coursRules.lunch, 'Déjeuner')}
+      ${stepper('coursRules.dinner', p.coursRules.dinner, 'Dîner')}
+      ${stepper('coursRules.eveningWork', p.coursRules.eveningWork, 'Travail du soir (si retard)')}
     </div>
-    <p class="small muted center">Modèles de journée, emploi du temps et matières : modifiables à l'étape 4b.</p>`;
+
+    <div class="section-title">Modifier</div>
+    <a class="card row-link" href="#planning/edt"><span><span class="name">Emploi du temps de cours</span>
+      <span class="muted small">Cours, semaines de validité, jours sans cours</span></span><span aria-hidden="true">›</span></a>
+    <a class="card row-link" href="#planning/matieres"><span><span class="name">Matières</span>
+      <span class="muted small">${p.subjects.length} matières</span></span><span aria-hidden="true">›</span></a>
+    <a class="card row-link" href="#planning/modele/bibliotheque"><span><span class="name">📚 Journée Bibliothèque</span>
+      <span class="muted small">Horaires de la bibliothèque, repas, trajets…</span></span><span aria-hidden="true">›</span></a>
+    <a class="card row-link" href="#planning/modele/repos"><span><span class="name">🌿 Journée Repos</span>
+      <span class="muted small">Ce qui est prévu les jours off</span></span><span aria-hidden="true">›</span></a>`;
 
   el.onclick = e => {
     const b = e.target.closest('[data-off],[data-key]');

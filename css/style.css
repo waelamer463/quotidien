@@ -396,3 +396,35 @@ input[type="time"] {
   font: inherit; font-size: 17px; min-height: 44px; padding: 0 10px;
   border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text);
 }
+
+/* ---------- Panneau d'édition ---------- */
+body.no-scroll { overflow: hidden; }
+.sheet-backdrop {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(0, 0, 0, .4);
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.sheet {
+  width: 100%; max-width: 640px; max-height: 88vh; overflow-y: auto;
+  background: var(--bg); border-radius: 20px 20px 0 0;
+  padding: 16px 16px calc(20px + env(safe-area-inset-bottom));
+  animation: up .2s ease-out;
+}
+@keyframes up { from { transform: translateY(40px); } }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; }
+.sheet-head strong { font-size: 19px; }
+.sheet .btn + .btn { margin-top: 0; }
+input[type="color"] { width: 100%; height: 48px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); padding: 4px; }
+
+/* ---------- Éditeurs du planning ---------- */
+.editable { cursor: pointer; }
+.editable:active { transform: scale(0.99); }
+.add-act { margin: 12px 0 8px; }
+.modified { margin: -6px 0 14px; }
+.chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.chip { font: inherit; font-weight: 600; font-size: 14px; cursor: pointer; }
+.edt-day { margin-bottom: 14px; display: flex; flex-direction: column; gap: 6px; }
+.edt-head { display: flex; justify-content: space-between; align-items: baseline; }
+.edt-empty { margin: 0; }
+.subj-dot { flex: none; width: 16px; height: 16px; border-radius: 50%; margin-right: 12px; }
+.row-link .grow { flex: 1; min-width: 0; }
