@@ -1,18 +1,20 @@
 import { getData, update, requestPersistence } from './storage.js';
-import * as habitsView from './habits-view.js';
-import * as statsView from './stats-view.js';
+import * as todayView from './today-view.js';
 import * as planningView from './planning-view.js';
 import { icon } from './icons.js';
 import { renderSky } from './sky.js';
 
 const views = {
-  habitudes: {
-    title: 'Habitudes',
-    render: habitsView.render,
+  aujourdhui: {
+    title: 'Aujourd\'hui',
+    render: todayView.render,
   },
   stats: {
     title: 'Stats',
-    render: statsView.render,
+    render: el => {
+      el.innerHTML = `<div class="card"><h2>Nouvelles stats en préparation</h2>
+        <p class="muted">Score du jour, essentiels, to-do et répartition de ta journée arrivent à l'étape R5.</p></div>`;
+    },
   },
   planning: {
     title: 'Planning',

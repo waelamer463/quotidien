@@ -3,17 +3,12 @@
 //   QUOTIDIEN date=2026-10-16 pas=8 234 kcal=1 720,5
 // (les nombres peuvent être au format français : espaces, virgule).
 
-import { update, getData } from './storage.js';
+import { update } from './storage.js';
 import { dateKey, fmt } from './util.js';
 
 export const SHORTCUT_NAME = 'Quotidien';
 export const SHORTCUT_URL = `shortcuts://run-shortcut?name=${encodeURIComponent(SHORTCUT_NAME)}`;
 
-export const SOURCES = {
-  pas: 'Pas (Santé)',
-  kcal: 'Calories (Santé / Yazio)',
-  taches: 'Heures de tâches faites (Planning)',
-};
 
 export function parse(text) {
   if (!/^\s*QUOTIDIEN\b/i.test(text || '')) return null;
@@ -31,23 +26,13 @@ export function parse(text) {
   return out;
 }
 
-// Applique l'import aux habitudes reliées. Renvoie la liste des changements.
+// Enregistre les valeurs importées dans les essentiels du jour. Renvoie la liste des changements.
 export function apply({ date, values }) {
   const changes = [];
   update(d => {
-    d.entries[date] ??= {};
-    for (const h of d.habits) {
-      if (!h.source || !(h.source in values)) continue;
-      const v = values[h.source];
-      // une valeur à 0 ne décoche jamais une case cochée à la main
-      if (h.type === 'check' && !v) continue;
-      d.entries[date][h.id] = h.type === 'check' ? 1 : v;
-      changes.push(h.type === 'check' ? `${h.name} ✓` : `${h.name} ${fmt(v)} ${h.unit || ''}`.trim());
-    }
+    const l = (d.log[date] ??= {});
+    if (values.pas != null) { l.pas = values.pas; changes.push(`${fmt(values.pas)} pas`); }
+    if (values.kcal != null) { l.kcal = values.kcal; changes.push(`${fmt(values.kcal)} kcal`); }
   });
   return changes;
-}
-
-export function hasLinkedHabits() {
-  return getData().habits.some(h => h.source === 'pas' || h.source === 'kcal');
 }

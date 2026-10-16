@@ -6,7 +6,6 @@ import { openSheet, activityFields, readActivity } from './sheet.js';
 import * as edit from './planning-edit.js';
 import { icon } from './icons.js';
 import { schedule } from './scheduler.js';
-import { withHabitSlots, toggleHabit } from './link.js';
 import { tasksSection, blockSegments, handleTaskClick } from './tasks-view.js';
 
 let day = dateKey();
@@ -58,19 +57,13 @@ function renderDay(el) {
 
     <div class="section-title">Journée</div>
     <div class="timeline">
-      ${withHabitSlots(items, day, p.bedtime).map(it => row(it, nowMin, sched.segments.filter(sg => it.eid != null && sg.block === it.eid))).join('')}
+      ${items.map(it => row(it, nowMin, sched.segments.filter(sg => it.eid != null && sg.block === it.eid))).join('')}
     </div>
     <button class="btn secondary add-act" data-act="add">${icon('plus')}Ajouter une activité</button>
     <p class="small muted center">Touche une activité pour la modifier, une prière pour la rattraper ou non.</p>`;
 
   el.onclick = e => {
     if (handleTaskClick(e, day, sched, () => renderDay(el))) return;
-    const hb = e.target.closest('[data-habit]');
-    if (hb) {
-      if (hb.dataset.check === '1') { toggleHabit(hb.dataset.habit, day); return renderDay(el); }
-      location.hash = '#habitudes';
-      return;
-    }
     const t = e.target.closest('[data-type],[data-act],[data-day],[data-eid]');
     if (!t) return;
     if (t.dataset.eid) return editActivity(el, Number(t.dataset.eid));
@@ -157,17 +150,6 @@ function row(it, nowMin, segs = []) {
         <span class="tl-time">${toHHMM(it.start)}</span>
         <span class="tl-label">${it.label}</span>
         <span class="tl-note">${it.deferred ? `rattrapée${it.catchupAt != null ? ` à ${toHHMM(it.catchupAt)}` : ''} · prier à l'heure ?` : 'à l\'heure · rattraper ?'}</span>
-      </button>`;
-  }
-  if (it.kind === 'habit') {
-    const note = it.noRoom ? 'pas de créneau libre aujourd\'hui'
-      : it.check ? (it.auto ? 'placée automatiquement' : '')
-      : `${it.value} · ${it.state === 'done' ? 'objectif atteint' : 'toucher pour saisir'}`;
-    return `
-      <button class="tl-habit ${it.state === 'done' ? 'done' : ''} ${it.noRoom ? 'no-room' : ''}" data-habit="${it.habitId}" data-check="${it.check ? 1 : 0}">
-        <span class="tl-time">${it.noRoom ? '—' : toHHMM(it.start)}${it.noRoom ? '' : `<small>${toHHMM(it.end)}</small>`}</span>
-        <span class="tl-body"><span class="tl-label">${esc(it.label)}</span>${note ? `<small>${note}</small>` : ''}</span>
-        ${it.check ? `<span class="tick">${icon('check')}</span>` : ''}
       </button>`;
   }
   if (it.kind === 'sommeil') {

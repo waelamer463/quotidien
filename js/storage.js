@@ -4,7 +4,7 @@ import { planningDefaults } from './planning-defaults.js';
 // `version` permettra de migrer les données si leur structure change plus tard.
 
 const KEY = 'quotidien:data';
-const VERSION = 3;
+const VERSION = 4;
 
 function defaults() {
   return {
@@ -13,8 +13,10 @@ function defaults() {
     entries: {},     // saisies par jour : { "2026-10-16": { habitId: valeur } }
     tasks: [],       // tâches du planning (étape 5)
     planning: planningDefaults(),
+    log: {},         // essentiels jour par jour (prières, kcal, pas, salle)
+    essentials: { kcalMin: 1600, kcalMax: 1900, steps: 7000, gymPerWeek: 3 },
     settings: {
-      lastTab: 'habitudes',
+      lastTab: 'aujourdhui',
     },
   };
 }
@@ -32,6 +34,7 @@ function load() {
       version: VERSION,
       settings: { ...base.settings, ...saved.settings },
       planning: { ...base.planning, ...saved.planning },
+      essentials: { ...base.essentials, ...saved.essentials },
     };
     // v2 : nouveaux horaires du modèle Bibliothèque (déjeuner 13h–14h30)
     if ((saved.version || 1) < 2) out.planning.templates = base.planning.templates;
@@ -41,6 +44,9 @@ function load() {
         if (h.name === 'Travail' && h.unit === 'h' && !h.source) { h.source = 'taches'; h.skipRest = true; }
       }
     }
+    // v4 : les habitudes deviennent les « essentiels »
+    if ((saved.version || 1) < 4) migrateFromHabits(out);
+    if (!['aujourdhui', 'planning', 'stats'].includes(out.settings.lastTab)) out.settings.lastTab = 'aujourdhui';
     return out;
   } catch {
     return defaults();
@@ -69,4 +75,21 @@ export async function requestPersistence() {
   if (navigator.storage?.persist) {
     try { await navigator.storage.persist(); } catch {}
   }
+}
+
+// Reprend l'historique des anciennes habitudes (calories, pas, salle).
+function migrateFromHabits(d) {
+  const find = test => d.habits.find(test);
+  const kcal = find(h => h.source === 'kcal' || /calorie/i.test(h.name));
+  const pas = find(h => h.source === 'pas' || /marche|pas/i.test(h.name) && h.unit === 'pas');
+  const gym = find(h => h.type === 'check' && /salle|sport|gym/i.test(h.name));
+  for (const [key, v] of Object.entries(d.entries || {})) {
+    const l = (d.log[key] ??= {});
+    if (kcal && v[kcal.id]) l.kcal = v[kcal.id];
+    if (pas && v[pas.id]) l.pas = v[pas.id];
+    if (gym && v[gym.id]) l.salle = true;
+  }
+  if (kcal?.min) d.essentials.kcalMin = kcal.min;
+  if (kcal?.max) d.essentials.kcalMax = kcal.max;
+  if (pas?.min) d.essentials.steps = pas.min;
 }

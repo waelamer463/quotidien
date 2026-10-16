@@ -5,7 +5,6 @@ import { dateKey, parseKey, esc, uid } from './util.js';
 import { DIFFICULTY, nextWorkDay } from './scheduler.js';
 import { openSheet } from './sheet.js';
 import { icon } from './icons.js';
-import { syncWorkHabits } from './link.js';
 
 export const dur = m => (m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? String(m % 60).padStart(2, '0') : ''}` : `${m} min`);
 const shortDay = k => (k === dateKey() ? "aujourd'hui" :
@@ -88,7 +87,6 @@ export function handleTaskClick(e, key, sched, rerender) {
 
   if (ds.taskDone) {
     update(d => { const x = d.tasks.find(y => y.id === ds.taskDone); x.done = !x.done; });
-    syncWorkHabits(key);
   } else if (ds.taskEdit) {
     return editTask(getData().tasks.find(x => x.id === ds.taskEdit), key, rerender), true;
   } else if (ds.taskAct === 'add') {
@@ -195,8 +193,6 @@ function editTask(t, key, rerender) {
       update(d => {
         const i = d.tasks.findIndex(x => x.id === next.id);
         if (i >= 0) d.tasks[i] = next; else d.tasks.push(next);
-        if (t && t.date !== next.date) queueMicrotask(() => syncWorkHabits(t.date));
-        queueMicrotask(() => syncWorkHabits(next.date));
         // une nouvelle tâche relance la question "tout ne rentre pas"
         if (d.planning.days[next.date]?.overflowOk) delete d.planning.days[next.date].overflowOk;
       });
@@ -204,7 +200,6 @@ function editTask(t, key, rerender) {
     },
     onDelete: t && (() => {
       update(d => { d.tasks = d.tasks.filter(x => x.id !== t.id); });
-      syncWorkHabits(t.date);
       rerender();
     }),
   });
