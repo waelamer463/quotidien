@@ -2,6 +2,8 @@ import { getData, update } from './storage.js';
 import { dateKey, addDays, dayLabel, fmt, esc, uid } from './util.js';
 import { TYPES, WEEK, PRESETS, isScheduled, status, goalLabel, daysLabel, progress } from './habits-model.js';
 import { icon } from './icons.js';
+import { buildDay, toHHMM } from './planning-model.js';
+import { withHabitSlots } from './link.js';
 import { SOURCES, SHORTCUT_URL, parse, apply, hasLinkedHabits } from './health-import.js';
 
 let importMsg = ''; // résultat du dernier import, affiché dans la carte Santé
@@ -33,6 +35,7 @@ function renderDay(el) {
       <strong>${dayLabel(day)}</strong>
       <button class="icon-btn" data-act="next" aria-label="Jour suivant" ${day === today ? 'disabled' : ''}>${icon('right')}</button>
     </div>
+    ${day === today ? nowCard() : ''}
     ${day === today && hasLinkedHabits() ? healthCard() : ''}
     ${habits.length === 0 ? emptyState() : `
       <div class="summary">
@@ -80,6 +83,33 @@ function renderDay(el) {
       e.target.closest('.editor').querySelector('[data-act="add"]').click();
     }
   };
+}
+
+// Ce qui se passe maintenant et ensuite dans le planning du jour.
+function nowCard() {
+  const p = getData().planning;
+  const k = dateKey();
+  const now = new Date();
+  const t = now.getHours() * 60 + now.getMinutes();
+  const items = withHabitSlots(buildDay(p, k).items, k, p.bedtime)
+    .filter(i => i.kind !== 'sommeil' && !i.noRoom && !(i.prayer && i.deferred));
+  const cur = items.find(i => !i.prayer && i.start <= t && t < i.end);
+  const next = items.filter(i => i.start > t).slice(0, 2);
+  if (!cur && !next.length) return '';
+  const line = (i, tag) => `
+    <div class="now-row">
+      <span class="tl-time">${toHHMM(i.start)}</span>
+      <span><span class="now-tag">${tag}</span><b> ${esc(i.label)}</b>
+        ${tag === 'Maintenant' ? `<small>jusqu'à ${toHHMM(i.end)}</small>` : ''}</span>
+    </div>`;
+  return `
+    <a class="card now-card row-link" href="#planning">
+      <span class="grow">
+        ${cur ? line(cur, 'Maintenant') : ''}
+        ${next.map(i => line(i, 'Ensuite')).join('')}
+      </span>
+      ${icon('right', 'chev')}
+    </a>`;
 }
 
 function healthCard() {
@@ -207,7 +237,7 @@ function renderForm(el, h) {
 
   el.innerHTML = `
     <a class="back" href="#habitudes${editing ? '/gerer' : ''}">${icon('left')}Retour</a>
-    <form class="form" data-type="${h.type}" novalidate>
+    <form class="form" data-type="${h.type}" data-slot="${h.slot?.mode || ''}" novalidate>
       <label>Nom
         <input name="name" required maxlength="40" value="${esc(h.name)}" placeholder="Ex. Lecture">
       </label>
@@ -243,11 +273,30 @@ function renderForm(el, h) {
         </div>
       </fieldset>
 
-      <label>Remplissage automatique (iPhone)
+      <label>Remplissage automatique
         <select name="source">
           <option value="">Aucun, je saisis à la main</option>
           ${Object.entries(SOURCES).map(([k, l]) => `<option value="${k}" ${h.source === k ? 'selected' : ''}>${l}</option>`).join('')}
         </select>
+      </label>
+
+      <fieldset>
+        <legend>Dans le planning</legend>
+        <div class="segmented three-r">
+          ${[['', 'Non'], ['fixed', 'Heure fixe'], ['auto', 'Auto']].map(([k, l]) => `
+            <label><input type="radio" name="slot" value="${k}" ${(h.slot?.mode || '') === k ? 'checked' : ''}><span>${l}</span></label>`).join('')}
+        </div>
+      </fieldset>
+      <div class="grid2 f-slot">
+        <label class="f-fixed">Heure <input type="time" name="slotStart" value="${h.slot?.start || '18:00'}"></label>
+        <label class="f-auto">Pas avant <input type="time" name="slotAfter" value="${h.slot?.after || '17:00'}"></label>
+        <label>Durée (min) <input inputmode="numeric" name="slotDuration" value="${h.slot?.duration || 60}"></label>
+      </div>
+      <p class="small muted f-auto" style="margin-top:-8px">Auto : l'app la place chaque jour sur ton premier moment libre.</p>
+
+      <label class="switch">
+        <input type="checkbox" name="skipRest" ${h.skipRest ? 'checked' : ''}>
+        <span>Pas prévue les jours de repos</span>
       </label>
 
       <label class="switch">
@@ -269,6 +318,7 @@ function renderForm(el, h) {
 
   form.onchange = e => {
     if (e.target.name === 'type') form.dataset.type = e.target.value;
+    if (e.target.name === 'slot') form.dataset.slot = e.target.value;
     if (e.target.name === 'limited') form.querySelector('.f-period').hidden = !e.target.checked;
   };
 
@@ -290,6 +340,13 @@ function renderForm(el, h) {
       start: f.get('limited') ? f.get('start') || null : null,
       end: f.get('limited') ? f.get('end') || null : null,
       source: f.get('source') || null,
+      skipRest: f.get('skipRest') === 'on',
+      slot: f.get('slot') ? {
+        mode: f.get('slot'),
+        start: f.get('slotStart') || '18:00',
+        after: f.get('slotAfter') || '07:00',
+        duration: Math.max(5, parseInt(f.get('slotDuration'), 10) || 60),
+      } : null,
     };
 
     const problem =

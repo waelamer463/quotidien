@@ -3,6 +3,8 @@
 import { dateKey, addDays, parseKey, fmt, esc } from './util.js';
 import { goalLabel } from './habits-model.js';
 import { dayResult, currentStreak, bestStreak, successRate, dayScore } from './stats.js';
+import { getData } from './storage.js';
+import { restDaysInMonth } from './planning-model.js';
 
 const pct = r => (r === null ? '–' : `${Math.round(r * 100)} %`);
 const shortDate = k => parseKey(k).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
@@ -15,10 +17,13 @@ function tile(value, label) {
 
 export function overviewTiles(habits, entries) {
   const best = Math.max(0, ...habits.map(h => currentStreak(h, entries)));
-  return `<div class="tiles">
+  const p = getData().planning;
+  const rest = restDaysInMonth(p, dateKey().slice(0, 7));
+  return `<div class="tiles four">
     ${tile(pct(successRate(habits, entries, 7)), 'réussite 7 jours')}
     ${tile(pct(successRate(habits, entries, 30)), 'réussite 30 jours')}
     ${tile(`${best} j`, 'meilleure série en cours')}
+    ${tile(`<span class="${rest > p.restPerMonth ? 'over-tag' : ''}">${rest} / ${p.restPerMonth}</span>`, 'jours de repos ce mois-ci')}
   </div>`;
 }
 

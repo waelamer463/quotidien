@@ -4,9 +4,12 @@
 // Une habitude :
 // { id, name, type: 'check'|'min'|'max'|'range', unit, min, max, step,
 //   days: [0..6] (0 = dimanche), start: 'AAAA-MM-JJ'|null, end: 'AAAA-MM-JJ'|null, created,
-//   source: 'pas'|'kcal'|null (import depuis le raccourci iPhone) }
+//   source: 'pas'|'kcal'|'taches'|null (remplissage automatique),
+//   slot: { mode: 'fixed'|'auto', start, after, duration } | null (créneau dans le planning),
+//   skipRest: bool (pas prévue les jours de repos) }
 
 import { parseKey, fmt } from './util.js';
+import { getData } from './storage.js';
 
 export const TYPES = {
   check: 'Oui / Non',
@@ -23,13 +26,14 @@ export const WEEK = [
 export const PRESETS = {
   calories: { name: 'Calories', type: 'range', unit: 'kcal', min: 1600, max: 1900, step: 100, source: 'kcal' },
   pas: { name: 'Marche', type: 'min', unit: 'pas', min: 7000, step: 500, source: 'pas' },
-  travail: { name: 'Travail', type: 'min', unit: 'h', min: 6, step: 0.5 },
-  salle: { name: 'Salle de sport', type: 'check' },
+  travail: { name: 'Travail', type: 'min', unit: 'h', min: 6, step: 0.5, source: 'taches', skipRest: true },
+  salle: { name: 'Salle de sport', type: 'check', slot: { mode: 'auto', after: '17:00', duration: 75 } },
 };
 
 export function isScheduled(h, key) {
   if (key < (h.start || h.created)) return false;
   if (h.end && key > h.end) return false;
+  if (h.skipRest && getData().planning.days[key]?.type === 'repos') return false;
   return h.days.includes(parseKey(key).getDay());
 }
 

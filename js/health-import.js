@@ -12,6 +12,7 @@ export const SHORTCUT_URL = `shortcuts://run-shortcut?name=${encodeURIComponent(
 export const SOURCES = {
   pas: 'Pas (Santé)',
   kcal: 'Calories (Santé / Yazio)',
+  taches: 'Heures de tâches faites (Planning)',
 };
 
 export function parse(text) {
@@ -22,7 +23,7 @@ export function parse(text) {
   for (const [, key, raw] of text.trim().matchAll(re)) {
     if (key === 'date') {
       if (/^\d{4}-\d{2}-\d{2}$/.test(raw.trim())) out.date = raw.trim();
-    } else if (key in SOURCES) {
+    } else if (key === 'pas' || key === 'kcal') {
       const n = parseFloat(raw.replace(/[^\d,.-]/g, '').replace(',', '.'));
       if (!isNaN(n)) out.values[key] = Math.round(n);
     }
@@ -48,5 +49,5 @@ export function apply({ date, values }) {
 }
 
 export function hasLinkedHabits() {
-  return getData().habits.some(h => h.source);
+  return getData().habits.some(h => h.source === 'pas' || h.source === 'kcal');
 }

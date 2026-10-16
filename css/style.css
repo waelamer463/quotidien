@@ -567,3 +567,30 @@ body.no-scroll { overflow: hidden; }
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
   .habit .tick .ic { stroke-dashoffset: 0; }
 }
+
+/* ---------- Liens habitudes ↔ planning ---------- */
+.form[data-slot=""] .f-slot, .form[data-slot=""] .f-auto { display: none; }
+.form[data-slot="fixed"] .f-auto { display: none; }
+.form[data-slot="auto"] .f-fixed { display: none; }
+
+.tl-habit {
+  display: flex; align-items: center; gap: 14px; width: 100%;
+  padding: 10px 14px; border: none; border-radius: var(--r-md);
+  background: color-mix(in srgb, var(--ok) 10%, var(--surface)); color: var(--text);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ok) 30%, transparent);
+  font: inherit; text-align: left; cursor: pointer;
+}
+.tl-habit .tl-body small { display: block; font-size: 13px; color: var(--muted); }
+.tl-habit .tick {
+  margin-left: auto; width: 34px; height: 34px; border-radius: 50%; flex: none;
+  display: grid; place-items: center; color: transparent; box-shadow: inset 0 0 0 2px var(--surface-2);
+}
+.tl-habit .tick .ic { width: 18px; height: 18px; stroke-width: 2.4; }
+.tl-habit.done .tick { background: var(--ok); color: #fff; box-shadow: none; }
+.tl-habit.no-room { background: transparent; box-shadow: inset 0 0 0 1px var(--danger); }
+
+.now-card .grow { display: flex; flex-direction: column; gap: 8px; }
+.now-row { display: flex; align-items: baseline; gap: 12px; }
+.now-row .tl-time { width: 50px; }
+.now-row small { display: block; color: var(--muted); font-size: 13px; }
+.now-tag { font-size: 12px; font-weight: 700; color: var(--accent); }
