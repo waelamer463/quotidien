@@ -8,6 +8,7 @@ import { buildDay, toHHMM } from './planning-model.js';
 import { PRAYER_STATES, dayLog, setLog, cyclePrayer, gymWeek, kcalState } from './essentials.js';
 import { SHORTCUT_URL, parse, apply } from './health-import.js';
 import { openSheet } from './sheet.js';
+import { todoSection, handleTodoClick, bindQuick } from './todo-view.js';
 
 let day = dateKey();
 let importMsg = '';
@@ -79,14 +80,13 @@ export function render(el) {
 
     <div class="ess-head">
       <h2 class="section-title">To-do</h2>
-      <a class="link small" href="#planning">Planning</a>
+      <span class="muted small">${todo.length ? `${todo.filter(t => t.done).length} / ${todo.length} faites` : ''}</span>
     </div>
-    <div class="card">
-      <p class="muted small">${todo.length ? `${todo.filter(t => t.done).length} / ${todo.length} tâches faites aujourd'hui.` : 'Aucune tâche pour ce jour.'}
-        La nouvelle to-do arrive à l'étape R2.</p>
-    </div>`;
+    ${todoSection(day)}`;
+  bindQuick(el, day, () => render(el));
 
   el.onclick = async ev => {
+    if (handleTodoClick(ev, day, () => render(el))) return;
     const b = ev.target.closest('[data-act],[data-prayer],[data-metric]');
     if (!b) return;
     const a = b.dataset.act;

@@ -4,14 +4,15 @@ import { planningDefaults } from './planning-defaults.js';
 // `version` permettra de migrer les données si leur structure change plus tard.
 
 const KEY = 'quotidien:data';
-const VERSION = 4;
+const VERSION = 5;
 
 function defaults() {
   return {
     version: VERSION,
     habits: [],      // définitions des habitudes (étape 2)
     entries: {},     // saisies par jour : { "2026-10-16": { habitId: valeur } }
-    tasks: [],       // tâches du planning (étape 5)
+    tasks: [],       // to-do (voir todo-model.js)
+    series: [],      // tâches répétées
     planning: planningDefaults(),
     log: {},         // essentiels jour par jour (prières, kcal, pas, salle)
     essentials: { kcalMin: 1600, kcalMax: 1900, steps: 7000, gymPerWeek: 3 },
@@ -46,6 +47,11 @@ function load() {
     }
     // v4 : les habitudes deviennent les « essentiels »
     if ((saved.version || 1) < 4) migrateFromHabits(out);
+    // v5 : la difficulté des tâches devient une priorité
+    if ((saved.version || 1) < 5) {
+      out.tasks = out.tasks.map(t => ({ start: null, end: null, postponed: 0, seriesId: null, doneAt: null,
+        ...t, priority: t.priority || (t.difficulty === 3 ? 2 : 1) }));
+    }
     if (!['aujourdhui', 'planning', 'stats'].includes(out.settings.lastTab)) out.settings.lastTab = 'aujourdhui';
     return out;
   } catch {

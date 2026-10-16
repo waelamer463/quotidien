@@ -1,0 +1,390 @@
+// To-do : ajout rapide, vues Jour / À venir / Toutes, fiche d'une tâche, reports.
+
+import { getData, update } from './storage.js';
+import { dateKey, addDays, parseKey, dayLabel, esc, uid } from './util.js';
+import { icon } from './icons.js';
+import { openSheet } from './sheet.js';
+import { schedule, nextWorkDay } from './scheduler.js';
+import { PRIORITY, kindOf, parseQuick, addTask, normalize, materialize, ruleLabel, sortTasks } from './todo-model.js';
+
+export const dur = m => (m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? String(m % 60).padStart(2, '0') : ''}` : `${m} min`);
+const hm = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+const short = k => (k === dateKey() ? "aujourd'hui" : k === addDays(dateKey(), 1) ? 'demain'
+  : parseKey(k).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }));
+
+let tab = 'jour';
+
+/* ---------- Section to-do de l'onglet Aujourd'hui ---------- */
+
+export function todoSection(day) {
+  materialize(day);
+  const { tasks, planning: p } = getData();
+  const sched = schedule(p, tasks, day);
+  const today = dateKey();
+
+  let body = '';
+  if (tab === 'jour') {
+    const late = day === today ? tasks.filter(t => !t.done && t.date < today) : [];
+    const list = sortTasks(tasks.filter(t => t.date === day));
+    body = `
+      ${late.length ? banner('late', `${late.length} tâche${late.length > 1 ? 's' : ''} en retard`,
+        late.map(t => esc(t.title)).join(', '), [['late-all', 'Tout mettre aujourd\'hui'], ['late-pick', 'Choisir']]) : ''}
+      ${sched.overflow.length && !p.days[day]?.overflowOk ? banner('warn',
+        `Tout ne rentre pas : ${dur(sched.overflow.reduce((n, o) => n + o.left, 0))} de trop`,
+        sched.overflow.map(o => `${esc(o.task.title)} (${dur(o.left)})`).join(', '),
+        [['over-next', `Reporter ${short(nextWorkDay(p, day))}`], ['over-pick', 'Choisir'], ['over-keep', 'Laisser']]) : ''}
+      ${list.length ? `<div class="tasks">${list.map(t => row(t, sched)).join('')}</div>`
+        : '<p class="muted small empty">Rien de prévu. Ajoute une tâche ci-dessus.</p>'}
+      ${sched.load ? `<p class="small muted load">${dur(sched.load)} de tâches à placer · ${dur(sched.capacity)} de travail dispo</p>` : ''}`;
+  } else if (tab === 'avenir') {
+    let html = '';
+    for (let i = 1; i <= 14; i++) {
+      const k = addDays(today, i);
+      materialize(k);
+      const list = sortTasks(getData().tasks.filter(t => t.date === k && !t.done));
+      if (list.length) html += `<h3 class="group">${dayLabel(k)}</h3><div class="tasks">${list.map(t => row(t)).join('')}</div>`;
+    }
+    body = html || '<p class="muted small empty">Rien de prévu dans les 14 prochains jours.</p>';
+  } else {
+    const open = sortTasks(tasks.filter(t => !t.done)).sort((a, b) => a.date.localeCompare(b.date));
+    const groups = {};
+    for (const t of open) (groups[t.date < today ? 'retard' : t.date] ??= []).push(t);
+    const { series } = getData();
+    body = Object.entries(groups).map(([k, list]) => `
+      <h3 class="group ${k === 'retard' ? 'late' : ''}">${k === 'retard' ? 'En retard' : dayLabel(k)}</h3>
+      <div class="tasks">${list.map(t => row(t)).join('')}</div>`).join('') || '<p class="muted small empty">Aucune tâche en cours.</p>';
+    if (series.length) {
+      body += `<h3 class="group">Répétitions</h3><div class="tasks">${series.map(s => `
+        <button class="task series" data-series="${s.id}">
+          <span class="task-body"><span class="task-title">${esc(s.title)}</span>
+            <span class="small muted">${ruleLabel(s.rule)}${s.until ? ` jusqu'au ${short(s.until)}` : ''}</span></span>
+          ${icon('right', 'chev')}
+        </button>`).join('')}</div>`;
+    }
+  }
+
+  return `
+    <form class="quick" data-quick>
+      <input name="q" autocomplete="off" enterkeyhint="done" placeholder="Ajouter… ex. « Exos Analyse 2h !! vendredi »" aria-label="Ajouter une tâche">
+      <button class="icon-btn" type="submit" aria-label="Ajouter">${icon('plus')}</button>
+    </form>
+    <div class="quick-preview" hidden></div>
+    <div class="todo-tabs segmented three">
+      ${[['jour', day === today ? "Aujourd'hui" : 'Ce jour'], ['avenir', 'À venir'], ['toutes', 'Toutes']].map(([k, l]) =>
+        `<button class="${tab === k ? 'on' : ''}" data-todo-tab="${k}">${l}</button>`).join('')}
+    </div>
+    ${body}`;
+}
+
+function banner(cls, title, text, actions) {
+  return `
+    <div class="card banner ${cls}">
+      <strong>${title}</strong>
+      <p class="small muted">${text}</p>
+      <div class="row${actions.length}">${actions.map(([a, l], i) =>
+        `<button class="btn small ${i ? 'secondary' : ''}" data-todo-act="${a}">${l}</button>`).join('')}</div>
+    </div>`;
+}
+
+function row(t, sched) {
+  const subj = t.subject && getData().planning.subjects.find(s => s.id === t.subject);
+  const k = kindOf(t);
+  const seg = sched?.segments.find(s => s.task?.id === t.id);
+  const over = sched?.overflow.find(o => o.task.id === t.id);
+  const meta = [
+    k === 'bloc' ? `${t.start}–${t.end}` : k === 'duree' ? dur(t.duration) : '',
+    seg && !t.done ? `placée à ${hm(seg.start)}` : '',
+    over ? `<b class="over-tag">${dur(over.left)} non placé</b>` : '',
+    t.deadline ? `pour ${short(t.deadline)}` : '',
+  ].filter(Boolean);
+  return `
+    <div class="task p${t.priority} ${t.done ? 'done' : ''}">
+      <button class="task-check" data-todo-done="${t.id}" aria-label="${t.done ? 'Marquer non faite' : 'Marquer faite'}">${icon('check')}</button>
+      <button class="task-body" data-todo-edit="${t.id}">
+        <span class="task-title">${t.priority > 1 ? `<i class="flag p${t.priority}" title="${PRIORITY[t.priority]}"></i>` : ''}${esc(t.title)}</span>
+        ${meta.length || subj || t.seriesId ? `<span class="small muted task-meta">
+          ${subj ? `<i class="subj-dot sm" style="background:${subj.color}"></i>${esc(subj.short)}` : ''}
+          ${meta.join(' · ')}${t.seriesId ? ` ${icon('sync', 'tiny')}` : ''}</span>` : ''}
+      </button>
+    </div>`;
+}
+
+/* ---------- Actions ---------- */
+
+// Gère les clics de la section ; renvoie true si traité.
+export function handleTodoClick(e, day, rerender) {
+  const b = e.target.closest('[data-todo-tab],[data-todo-done],[data-todo-edit],[data-todo-act],[data-series]');
+  if (!b) return false;
+  const ds = b.dataset;
+  const { planning: p, tasks } = getData();
+
+  if (ds.todoTab) tab = ds.todoTab;
+  else if (ds.todoDone) toggleDone(ds.todoDone);
+  else if (ds.todoEdit) { editTask(tasks.find(t => t.id === ds.todoEdit), rerender); return true; }
+  else if (ds.series) { editSeries(getData().series.find(s => s.id === ds.series), rerender); return true; }
+  else {
+    const sched = schedule(p, tasks, day);
+    const late = tasks.filter(t => !t.done && t.date < dateKey());
+    if (ds.todoAct === 'late-all') move(late.map(t => t.id), dateKey());
+    else if (ds.todoAct === 'late-pick') { pick(late, dateKey(), 'Tâches en retard', rerender); return true; }
+    else if (ds.todoAct === 'over-next') postpone(sched.overflow, nextWorkDay(p, day));
+    else if (ds.todoAct === 'over-pick') { pick(sched.overflow.map(o => o.task), nextWorkDay(p, day), 'Que reporter ?', rerender, sched.overflow); return true; }
+    else if (ds.todoAct === 'over-keep') update(d => { d.planning.days[day] = { ...d.planning.days[day], overflowOk: true }; });
+  }
+  rerender();
+  return true;
+}
+
+// Ajout rapide : aperçu en direct pendant la frappe, ajout à la validation.
+export function bindQuick(root, day, rerender) {
+  const form = root.querySelector('[data-quick]');
+  if (!form) return;
+  const input = form.querySelector('input');
+  const preview = root.querySelector('.quick-preview');
+  const subjects = getData().planning.subjects;
+
+  input.addEventListener('input', () => {
+    const v = input.value.trim();
+    if (!v) { preview.hidden = true; return; }
+    const r = parseQuick(v, day, subjects);
+    const chips = [
+      r.date !== day ? short(r.date) : '',
+      r.start ? `${r.start}–${r.end}` : r.duration ? dur(r.duration) : '',
+      r.priority > 1 ? PRIORITY[r.priority] : '',
+      r.deadline ? `pour ${short(r.deadline)}` : '',
+      r.rule ? ruleLabel(r.rule) : '',
+      r.subject ? subjects.find(s => s.id === r.subject)?.short : '',
+    ].filter(Boolean);
+    preview.hidden = false;
+    preview.innerHTML = `<b>${esc(r.title || '…')}</b>${chips.map(c => `<span class="chip-mini">${esc(c)}</span>`).join('')}
+      <button type="button" class="link small" data-more>Plus d'options</button>`;
+  });
+  preview.addEventListener('click', e => {
+    if (!e.target.closest('[data-more]')) return;
+    const r = parseQuick(input.value, day, subjects);
+    editTask({ ...r, id: null }, rerender);
+  });
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const r = parseQuick(input.value, day, subjects);
+    if (!r.title) return;
+    addTask(r);
+    if (r.date === day) update(d => { if (d.planning.days[day]?.overflowOk) delete d.planning.days[day].overflowOk; });
+    rerender();
+    root.querySelector('[data-quick] input')?.focus();
+  });
+}
+
+function toggleDone(id) {
+  update(d => {
+    const t = d.tasks.find(x => x.id === id);
+    t.done = !t.done;
+    t.doneAt = t.done ? new Date().toISOString() : null;
+  });
+}
+
+function move(ids, to) {
+  update(d => d.tasks.forEach(t => {
+    if (ids.includes(t.id) && t.date !== to) { t.date = to; t.postponed = (t.postponed || 0) + 1; }
+  }));
+}
+
+// Une tâche placée en partie est coupée : la partie placée reste, la suite part au jour choisi.
+function postpone(overflow, to) {
+  update(d => {
+    for (const { task, left } of overflow) {
+      const t = d.tasks.find(x => x.id === task.id);
+      if (!t) continue;
+      if (left < t.duration) {
+        t.duration -= left;
+        d.tasks.push(normalize({ ...t, id: uid(), seriesId: null, duration: left, date: to,
+          postponed: (t.postponed || 0) + 1, title: `${t.title.replace(/ \(suite\)$/, '')} (suite)` }));
+      } else { t.date = to; t.postponed = (t.postponed || 0) + 1; }
+    }
+  });
+}
+
+function pick(list, defaultDay, title, rerender, overflow = null) {
+  openSheet({
+    title, saveLabel: 'Déplacer les tâches cochées',
+    body: `${list.map(t => `
+        <label class="switch"><input type="checkbox" name="ids" value="${t.id}" checked>
+          <span>${esc(t.title)}${t.duration ? ` <small class="muted">(${dur(t.duration)})</small>` : ''}</span></label>`).join('')}
+      <label>Vers le jour <input type="date" name="to" value="${defaultDay}"></label>`,
+    onSave: f => {
+      const to = f.get('to');
+      if (!to) return 'Choisis un jour.';
+      const ids = f.getAll('ids');
+      if (overflow) postpone(overflow.filter(o => ids.includes(o.task.id)), to); else move(ids, to);
+      rerender();
+    },
+  });
+}
+
+/* ---------- Fiche d'une tâche ---------- */
+
+const DURATIONS = [15, 30, 45, 60, 75, 90, 120, 150, 180, 240, 300, 360, 480];
+const WEEK = [[1, 'L'], [2, 'M'], [3, 'M'], [4, 'J'], [5, 'V'], [6, 'S'], [0, 'D']];
+
+export function editTask(t, rerender) {
+  const { planning: p, series } = getData();
+  const isNew = !t?.id;
+  t = { priority: 1, date: dateKey(), ...t };
+  const k = kindOf(t);
+  const durations = [...new Set([...DURATIONS, t.duration || 60])].sort((a, b) => a - b);
+  const s = t.seriesId && series.find(x => x.id === t.seriesId);
+
+  openSheet({
+    title: isNew ? 'Nouvelle tâche' : 'Tâche',
+    saveLabel: isNew ? 'Ajouter' : 'Enregistrer',
+    body: `
+      <label>Tâche <input name="title" maxlength="100" value="${esc(t.title || '')}"></label>
+      <fieldset><legend>Type</legend>
+        <div class="segmented three-r">
+          ${[['simple', 'Simple'], ['duree', 'Avec durée'], ['bloc', 'Horaire']].map(([v, l]) =>
+            `<label><input type="radio" name="kind" value="${v}" ${k === v ? 'checked' : ''}><span>${l}</span></label>`).join('')}
+        </div>
+      </fieldset>
+      <label class="k-duree">Durée estimée
+        <select name="duration">${durations.map(m => `<option value="${m}" ${m === (t.duration || 60) ? 'selected' : ''}>${dur(m)}</option>`).join('')}</select>
+      </label>
+      <div class="grid2 k-bloc">
+        <label>Début <input type="time" name="start" value="${t.start || '14:00'}"></label>
+        <label>Fin <input type="time" name="end" value="${t.end || '15:00'}"></label>
+      </div>
+      <fieldset><legend>Priorité</legend>
+        <div class="segmented three-r">
+          ${[1, 2, 3].map(v => `<label><input type="radio" name="priority" value="${v}" ${t.priority === v ? 'checked' : ''}><span>${PRIORITY[v]}</span></label>`).join('')}
+        </div>
+      </fieldset>
+      <div class="grid2">
+        <label>Jour <input type="date" name="date" value="${t.date}"></label>
+        <label>Échéance <input type="date" name="deadline" value="${t.deadline || ''}"></label>
+      </div>
+      <label>Matière
+        <select name="subject"><option value="">—</option>${p.subjects.map(x =>
+          `<option value="${x.id}" ${t.subject === x.id ? 'selected' : ''}>${esc(x.short)}</option>`).join('')}</select>
+      </label>
+      ${isNew ? repeatFields(t.rule) : s ? `<p class="small muted">${icon('sync', 'tiny')} ${ruleLabel(s.rule)}. Les changements ne touchent que ce jour.</p>` : ''}
+      ${!isNew && t.postponed ? `<p class="small muted">Reportée ${t.postponed} fois.</p>` : ''}`,
+    onSave: f => {
+      const title = f.get('title').trim();
+      if (!title) return 'Donne un nom à la tâche.';
+      const kind = f.get('kind');
+      const fields = {
+        title, date: f.get('date') || dateKey(),
+        priority: Number(f.get('priority')), deadline: f.get('deadline') || null, subject: f.get('subject') || null,
+        start: kind === 'bloc' ? f.get('start') : null, end: kind === 'bloc' ? f.get('end') : null,
+        duration: kind === 'duree' ? Number(f.get('duration')) : null,
+      };
+      if (kind === 'bloc') {
+        if (!fields.start || !fields.end || fields.end <= fields.start) return 'La fin doit être après le début.';
+        const [a, b] = [fields.start, fields.end].map(x => x.split(':').map(Number)).map(([h, m]) => h * 60 + m);
+        fields.duration = b - a;
+      }
+      if (isNew) {
+        const rule = readRule(f, fields.date);
+        addTask({ ...fields, rule });
+      } else {
+        update(d => {
+          const x = d.tasks.find(y => y.id === t.id);
+          if (x.date !== fields.date) x.postponed = (x.postponed || 0) + 1;
+          Object.assign(x, fields);
+        });
+      }
+      rerender();
+    },
+    onDelete: !isNew && (() => {
+      update(d => {
+        d.tasks = d.tasks.filter(y => y.id !== t.id);
+        if (t.seriesId) d.series.find(x => x.id === t.seriesId)?.skip.push(t.date); // ne pas la recréer
+      });
+      rerender();
+    }),
+  });
+
+  // champs visibles selon le type et la répétition
+  const form = document.querySelector('.sheet');
+  const sync = () => {
+    form.dataset.kind = form.querySelector('[name=kind]:checked').value;
+    const r = form.querySelector('[name=repeat]');
+    if (r) form.dataset.repeat = r.value;
+  };
+  form.addEventListener('change', sync);
+  sync();
+}
+
+function repeatFields(rule) {
+  return `
+    <label>Répétition
+      <select name="repeat">
+        <option value="">Ne se répète pas</option>
+        <option value="day" ${rule?.type === 'day' ? 'selected' : ''}>Tous les jours</option>
+        <option value="week" ${rule?.type === 'week' ? 'selected' : ''}>Certains jours de la semaine</option>
+      </select>
+    </label>
+    <div class="r-week">
+      <div class="days">${WEEK.map(([d, l]) => `<label><input type="checkbox" name="rdays" value="${d}" ${rule?.days?.includes(d) ? 'checked' : ''}><span>${l}</span></label>`).join('')}</div>
+      <label style="margin-top:10px">Toutes les … semaines <input name="interval" inputmode="numeric" value="${rule?.interval || 1}"></label>
+    </div>`;
+}
+
+function readRule(f, date) {
+  const type = f.get('repeat');
+  if (!type) return null;
+  if (type === 'day') return { type, interval: 1 };
+  const days = f.getAll('rdays').map(Number);
+  return { type, days: days.length ? days : [parseKey(date).getDay()], interval: Math.max(1, parseInt(f.get('interval'), 10) || 1) };
+}
+
+function editSeries(s, rerender) {
+  openSheet({
+    title: 'Répétition',
+    saveLabel: 'Enregistrer',
+    body: `
+      <label>Tâche <input name="title" value="${esc(s.title)}"></label>
+      <p class="small muted">${ruleLabel(s.rule)}, depuis le ${short(s.from)}.</p>
+      <label>Arrêter après le <input type="date" name="until" value="${s.until || ''}"></label>
+      <p class="small muted">Supprimer arrête la répétition. Les tâches déjà faites sont conservées.</p>`,
+    onSave: f => {
+      const title = f.get('title').trim();
+      if (!title) return 'Donne un nom.';
+      update(d => {
+        const x = d.series.find(y => y.id === s.id);
+        x.title = title;
+        x.until = f.get('until') || null;
+        d.tasks = d.tasks.filter(t => t.seriesId !== s.id || t.done || !x.until || t.date <= x.until);
+      });
+      rerender();
+    },
+    onDelete: () => {
+      update(d => {
+        d.series = d.series.filter(y => y.id !== s.id);
+        d.tasks = d.tasks.filter(t => t.seriesId !== s.id || t.done || t.date < dateKey());
+      });
+      rerender();
+    },
+  });
+}
+
+/* ---------- Dans le planning ---------- */
+
+// Blocs horaires de la to-do pour un jour, sous forme d'éléments de planning.
+export function taskBlocks(key) {
+  const toMin = s => { const [h, m] = s.split(':').map(Number); return h * 60 + m; };
+  return getData().tasks.filter(t => t.date === key && t.start && t.end).map(t => ({
+    start: toMin(t.start), end: toMin(t.end), label: t.title, kind: 'tache',
+    taskId: t.id, done: t.done, priority: t.priority,
+  }));
+}
+
+export function blockSegments(segs) {
+  if (!segs.length) return '';
+  return `<div class="segs">${segs.map(s => {
+    const time = `<span class="seg-time">${hm(s.start)}–${hm(s.end)}</span>`;
+    if (s.kind === 'pause') return `<div class="seg pause">${time}<span>Pause</span></div>`;
+    if (s.kind === 'free') return `<div class="seg free">${time}<span>Temps libre</span></div>`;
+    return `<button class="seg task-seg p${s.task.priority}" data-todo-edit="${s.task.id}">${time}
+      <span>${esc(s.task.title)}${s.part ? ' <small>(partie)</small>' : ''}</span></button>`;
+  }).join('')}</div>`;
+}

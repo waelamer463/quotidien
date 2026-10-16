@@ -6,7 +6,7 @@ import { openSheet, activityFields, readActivity } from './sheet.js';
 import * as edit from './planning-edit.js';
 import { icon } from './icons.js';
 import { schedule } from './scheduler.js';
-import { tasksSection, blockSegments, handleTaskClick } from './tasks-view.js';
+import { taskBlocks, blockSegments, handleTodoClick } from './todo-view.js';
 
 let day = dateKey();
 
@@ -53,17 +53,15 @@ function renderDay(el) {
     ${overridden ? `<p class="small muted modified">${p.days[day]?.items ? 'Journée modifiée à la main' : 'Type de jour changé'} ·
       <button class="link" data-act="reset">Revenir au planning prévu</button></p>` : ''}
 
-    ${tasksSection(day, sched)}
-
     <div class="section-title">Journée</div>
     <div class="timeline">
-      ${items.map(it => row(it, nowMin, sched.segments.filter(sg => it.eid != null && sg.block === it.eid))).join('')}
+      ${[...items, ...taskBlocks(day)].sort((a, b) => a.start - b.start).map(it => row(it, nowMin, sched.segments.filter(sg => it.eid != null && sg.block === it.eid))).join('')}
     </div>
     <button class="btn secondary add-act" data-act="add">${icon('plus')}Ajouter une activité</button>
     <p class="small muted center">Touche une activité pour la modifier, une prière pour la rattraper ou non.</p>`;
 
   el.onclick = e => {
-    if (handleTaskClick(e, day, sched, () => renderDay(el))) return;
+    if (handleTodoClick(e, day, () => renderDay(el))) return;
     const t = e.target.closest('[data-type],[data-act],[data-day],[data-eid]');
     if (!t) return;
     if (t.dataset.eid) return editActivity(el, Number(t.dataset.eid));
@@ -151,6 +149,15 @@ function row(it, nowMin, segs = []) {
         <span class="tl-label">${it.label}</span>
         <span class="tl-note">${it.deferred ? `rattrapée${it.catchupAt != null ? ` à ${toHHMM(it.catchupAt)}` : ''} · prier à l'heure ?` : 'à l\'heure · rattraper ?'}</span>
       </button>`;
+  }
+  if (it.kind === 'tache') {
+    return `
+      <div class="tl-item k-tache p${it.priority} ${it.done ? 'done' : ''}">
+        <span class="tl-time">${toHHMM(it.start)}<small>${toHHMM(it.end)}</small></span>
+        <button class="tl-body tl-task" data-todo-edit="${it.taskId}"><span class="tl-label">${esc(it.label)}</span>
+          <span class="tl-sub">To-do</span></button>
+        <button class="task-check" data-todo-done="${it.taskId}" aria-label="Marquer faite">${icon('check')}</button>
+      </div>`;
   }
   if (it.kind === 'sommeil') {
     return `<div class="tl-mark"><span class="tl-time">${toHHMM(it.start)}</span>${icon('moon')}<span>${it.label}</span></div>`;

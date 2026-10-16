@@ -2,14 +2,14 @@
 //
 // 1. Les blocs "travail" du jour sont découpés en sessions (≤ focus.session minutes),
 //    séparées par des pauses (au plus focus.maxPauses dans la journée).
-// 2. Les tâches sont triées : échéance aujourd'hui ou demain d'abord, puis les plus
-//    difficiles, puis l'échéance la plus proche.
+// 2. Les tâches avec durée (sans horaire) sont triées : échéance aujourd'hui ou demain
+//    d'abord, puis la priorité, puis l'échéance la plus proche.
+//    Les blocs horaires de la to-do occupent leur créneau : on ne place rien dessus.
 // 3. On remplit les sessions dans l'ordre chronologique (les blocs "si retard" en dernier).
 
-import { addDays } from './util.js';
+import { addDays, dateKey } from './util.js';
 import { buildDay } from './planning-model.js';
 
-export const DIFFICULTY = { 3: 'Difficile', 2: 'Moyenne', 1: 'Facile' };
 const MIN_CHUNK = 15; // on ne crée pas de morceau de tâche plus court
 
 export function sortTasks(tasks, key) {
@@ -18,7 +18,7 @@ export function sortTasks(tasks, key) {
   return [...tasks].sort((a, b) =>
     urgent(a) - urgent(b) ||
     (urgent(a) === 0 ? a.deadline.localeCompare(b.deadline) : 0) ||
-    b.difficulty - a.difficulty ||
+    b.priority - a.priority ||
     (a.deadline || '9999').localeCompare(b.deadline || '9999') ||
     a.created.localeCompare(b.created));
 }
@@ -47,11 +47,21 @@ function sessions(blocks, focus) {
 }
 
 export function schedule(p, tasks, key, day = buildDay(p, key)) {
-  const blocks = day.items.filter(i => i.kind === 'travail' && i.eid != null && i.end > i.start);
-  const all = sessions(blocks, p.focus);
+  const toMin = s => { const [h, m] = s.split(':').map(Number); return h * 60 + m; };
+  const fixed = tasks.filter(t => t.date === key && t.start && t.end).map(t => [toMin(t.start), toMin(t.end)]);
+  // blocs de travail, découpés autour des blocs horaires de la to-do
+  const blocks = day.items.filter(i => i.kind === 'travail' && i.eid != null && i.end > i.start)
+    .flatMap(b => fixed.reduce((parts, [fs, fe]) => parts.flatMap(x => (fe <= x.start || fs >= x.end ? [x] :
+      [{ ...x, end: fs }, { ...x, start: fe }].filter(y => y.end - y.start >= MIN_CHUNK))), [b]));
+  // aujourd'hui : on ne place rien dans le passé
+  const now = new Date();
+  const cut = key === dateKey(now) ? Math.ceil((now.getHours() * 60 + now.getMinutes()) / 5) * 5 : 0;
+  const future = blocks.map(b => ({ ...b, start: Math.max(b.start, cut) })).filter(b => b.end - b.start >= MIN_CHUNK);
+  const all = sessions(future, p.focus);
   const work = [...all.filter(s => !s.pause && !s.optional), ...all.filter(s => !s.pause && s.optional)];
 
-  const queue = sortTasks(tasks.filter(t => t.date === key && !t.done), key)
+  const placeable = tasks.filter(t => t.date === key && !t.done && t.duration && !t.start);
+  const queue = sortTasks(placeable, key)
     .map(t => ({ task: t, left: t.duration }));
   const segments = all.filter(s => s.pause).map(s => ({ ...s, kind: 'pause' }));
   const usedOptional = new Set();
@@ -73,8 +83,8 @@ export function schedule(p, tasks, key, day = buildDay(p, key)) {
   }
 
   segments.sort((a, b) => a.start - b.start);
-  const capacity = work.filter(s => !s.optional).reduce((n, s) => n + s.end - s.start, 0);
-  const load = tasks.filter(t => t.date === key && !t.done).reduce((n, t) => n + t.duration, 0);
+  const capacity = work.reduce((n, s) => n + s.end - s.start, 0);
+  const load = placeable.reduce((n, t) => n + t.duration, 0);
   return {
     segments,
     overflow: queue.map(q => ({ task: q.task, left: q.left })),
