@@ -1,6 +1,7 @@
 import { getData, update, requestPersistence } from './storage.js';
 import * as habitsView from './habits-view.js';
 import * as statsView from './stats-view.js';
+import * as planningView from './planning-view.js';
 
 const views = {
   habitudes: {
@@ -13,13 +14,7 @@ const views = {
   },
   planning: {
     title: 'Planning',
-    render: el => {
-      el.innerHTML = `
-        <div class="card">
-          <h2>Ta journée</h2>
-          <p class="muted">Bientôt ici : prières, blocs de travail et tâches.</p>
-        </div>`;
-    },
+    render: planningView.render,
   },
 };
 
@@ -32,7 +27,7 @@ function route() {
 function render() {
   const { tab, params } = route();
   const el = document.getElementById('view');
-  el.onclick = el.onkeydown = null;
+  el.onclick = el.onkeydown = el.onchange = null;
   const title = views[tab].render(el, params);
   document.getElementById('view-title').textContent = title || views[tab].title;
   document.querySelectorAll('.tabbar a').forEach(a => {

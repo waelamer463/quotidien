@@ -1,3 +1,5 @@
+import { planningDefaults } from './planning-defaults.js';
+
 // Toutes les données de l'app vivent dans un seul objet, sauvegardé dans localStorage.
 // `version` permettra de migrer les données si leur structure change plus tard.
 
@@ -10,11 +12,9 @@ function defaults() {
     habits: [],      // définitions des habitudes (étape 2)
     entries: {},     // saisies par jour : { "2026-10-16": { habitId: valeur } }
     tasks: [],       // tâches du planning (étape 5)
+    planning: planningDefaults(),
     settings: {
       lastTab: 'habitudes',
-      city: null,
-      prayerMethod: 'UOIF',
-      prayerOffsets: { fajr: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0 },
     },
   };
 }
@@ -27,7 +27,11 @@ function load() {
     if (!raw) return defaults();
     const saved = JSON.parse(raw);
     const base = defaults();
-    return { ...base, ...saved, settings: { ...base.settings, ...saved.settings } };
+    return {
+      ...base, ...saved,
+      settings: { ...base.settings, ...saved.settings },
+      planning: { ...base.planning, ...saved.planning },
+    };
   } catch {
     return defaults();
   }
