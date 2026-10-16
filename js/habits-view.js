@@ -84,7 +84,7 @@ function renderDay(el) {
 function healthCard() {
   return `
     <div class="card health">
-      <div class="habit-head"><span class="name">Santé iPhone</span><span class="goal">pas · calories · salle</span></div>
+      <div class="habit-head"><span class="name">Santé iPhone</span><span class="goal">pas · calories</span></div>
       <div class="row2">
         <a class="btn secondary" href="${SHORTCUT_URL}">1. Lire Santé</a>
         <button class="btn" data-act="paste">2. Coller</button>

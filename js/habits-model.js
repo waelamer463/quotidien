@@ -4,7 +4,7 @@
 // Une habitude :
 // { id, name, type: 'check'|'min'|'max'|'range', unit, min, max, step,
 //   days: [0..6] (0 = dimanche), start: 'AAAA-MM-JJ'|null, end: 'AAAA-MM-JJ'|null, created,
-//   source: 'pas'|'kcal'|'salle'|null (import depuis le raccourci iPhone) }
+//   source: 'pas'|'kcal'|null (import depuis le raccourci iPhone) }
 
 import { parseKey, fmt } from './util.js';
 
@@ -24,7 +24,7 @@ export const PRESETS = {
   calories: { name: 'Calories', type: 'range', unit: 'kcal', min: 1600, max: 1900, step: 100, source: 'kcal' },
   pas: { name: 'Marche', type: 'min', unit: 'pas', min: 7000, step: 500, source: 'pas' },
   travail: { name: 'Travail', type: 'min', unit: 'h', min: 6, step: 0.5 },
-  salle: { name: 'Salle de sport', type: 'check', source: 'salle' },
+  salle: { name: 'Salle de sport', type: 'check' },
 };
 
 export function isScheduled(h, key) {
