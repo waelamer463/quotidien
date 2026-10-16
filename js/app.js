@@ -1,36 +1,39 @@
 import { getData, update, requestPersistence } from './storage.js';
+import * as habitsView from './habits-view.js';
 
 const views = {
   habitudes: {
     title: 'Habitudes',
-    render: () => `
-      <div class="card">
-        <h2>Tes habitudes du jour</h2>
-        <p class="muted">Bientôt ici : saisie rapide, séries et graphiques.</p>
-      </div>`,
+    render: habitsView.render,
   },
   planning: {
     title: 'Planning',
-    render: () => `
-      <div class="card">
-        <h2>Ta journée</h2>
-        <p class="muted">Bientôt ici : prières, blocs de travail et tâches.</p>
-      </div>`,
+    render: el => {
+      el.innerHTML = `
+        <div class="card">
+          <h2>Ta journée</h2>
+          <p class="muted">Bientôt ici : prières, blocs de travail et tâches.</p>
+        </div>`;
+    },
   },
 };
 
-function currentTab() {
-  const hash = location.hash.slice(1);
-  return views[hash] ? hash : getData().settings.lastTab;
+// L'URL a la forme #onglet/sous-page/argument, ex. #habitudes/modifier/abc123
+function route() {
+  const [tab, ...params] = location.hash.slice(1).split('/');
+  return views[tab] ? { tab, params } : { tab: getData().settings.lastTab, params: [] };
 }
 
 function render() {
-  const tab = currentTab();
-  document.getElementById('view-title').textContent = views[tab].title;
-  document.getElementById('view').innerHTML = views[tab].render();
+  const { tab, params } = route();
+  const el = document.getElementById('view');
+  el.onclick = el.onkeydown = null;
+  const title = views[tab].render(el, params);
+  document.getElementById('view-title').textContent = title || views[tab].title;
   document.querySelectorAll('.tabbar a').forEach(a => {
     a.classList.toggle('active', a.dataset.tab === tab);
   });
+  window.scrollTo(0, 0);
   update(d => { d.settings.lastTab = tab; });
 }
 
