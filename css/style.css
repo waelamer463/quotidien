@@ -234,3 +234,69 @@ input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 .form[data-type="max"] .f-min { display: none; }
 
 .error { color: var(--danger); font-weight: 600; margin: 0; }
+
+/* ---------- Statistiques ---------- */
+.section-title { font-size: 15px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin: 22px 0 10px; }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.tiles.four { grid-template-columns: repeat(2, 1fr); }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 12px; }
+.tile b { display: block; font-size: 24px; line-height: 1.1; }
+.tile span { font-size: 13px; color: var(--muted); }
+
+.cal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; }
+.cal-title { font-weight: 700; margin-bottom: 10px; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.cal-grid .wd { text-align: center; font-size: 12px; color: var(--muted); font-weight: 600; }
+.cal-grid .day {
+  position: relative; aspect-ratio: 1; border-radius: 8px;
+  display: grid; place-items: center; font-size: 13px;
+  border: 1px solid transparent;
+}
+.cal-grid .day small { position: absolute; top: 3px; left: 5px; font-size: 10px; color: var(--muted); }
+.cal-grid .day em { font-style: normal; font-weight: 800; font-size: 15px; }
+.cal-grid .none small { opacity: .5; }
+.cal-grid .done { background: var(--accent); color: #fff; }
+.cal-grid .over { background: var(--danger); color: #fff; }
+.cal-grid .done small, .cal-grid .over small, .cal-grid .lv3 small, .cal-grid .lv4 small { color: rgba(255,255,255,.85); }
+.cal-grid .todo { border-color: var(--muted); border-style: dashed; }
+.cal-grid .pending { border-color: var(--accent); }
+.lv0 { background: var(--border); }
+.lv1 { background: color-mix(in srgb, var(--accent) 25%, var(--surface)); }
+.lv2 { background: color-mix(in srgb, var(--accent) 50%, var(--surface)); }
+.lv3 { background: color-mix(in srgb, var(--accent) 75%, var(--surface)); }
+.lv4 { background: var(--accent); }
+
+.legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-top: 10px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 18px; height: 18px; border-radius: 5px; display: inline-grid; place-items: center; font-style: normal; font-weight: 800; font-size: 11px; color: #fff; border: 1px solid transparent; }
+.legend i.done { background: var(--accent); }
+.legend i.over { background: var(--danger); }
+.legend i.todo { border: 1px dashed var(--muted); }
+.legend.scale { gap: 3px; }
+.legend.scale span:first-child { margin-right: 4px; }
+.legend.scale span:last-child { margin-left: 4px; }
+
+.chart { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 10px 6px; margin-bottom: 12px; }
+.chart .readout { font-weight: 650; padding: 0 4px 6px; min-height: 1.5em; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: pan-y; }
+.chart .axis { font-size: 10px; fill: var(--muted); }
+.chart .base { stroke: var(--border); stroke-width: 1; }
+.chart .goal { stroke: var(--accent); stroke-width: 1; stroke-dasharray: 4 3; }
+.chart .band { fill: var(--accent); opacity: .12; }
+.chart .bar-done { fill: var(--accent); }
+.chart .bar-todo, .chart .bar-pending { fill: var(--muted); opacity: .55; }
+.chart .bar-over { fill: var(--danger); }
+.chart .hit { fill: transparent; cursor: pointer; }
+.chart .hit.on { fill: var(--text); opacity: .08; }
+
+.habit-row { display: flex; align-items: center; gap: 12px; color: inherit; text-decoration: none; width: 100%; font: inherit; text-align: left; cursor: pointer; }
+.habit-row .grow { flex: 1; min-width: 0; }
+.habit-row .name { display: block; font-weight: 650; }
+.dots { display: flex; gap: 3px; margin-top: 6px; }
+.dots i { width: 9px; height: 9px; border-radius: 3px; background: var(--border); }
+.dots i.done { background: var(--accent); }
+.dots i.over { background: var(--danger); }
+.dots i.todo { background: transparent; border: 1px dashed var(--muted); }
+.streak { font-weight: 700; white-space: nowrap; }
+.streak small { display: block; font-size: 12px; font-weight: 500; color: var(--muted); text-align: right; }
+.badge { display: inline-block; font-size: 13px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
