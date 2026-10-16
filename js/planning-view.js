@@ -4,6 +4,7 @@ import { PRAYERS, PRAYER_NAMES, prayerTimes } from './prayers.js';
 import { DAY_TYPES, buildDay, baseItems, toStored, courseSlots, dayType, restDaysInMonth, toHHMM } from './planning-model.js';
 import { openSheet, activityFields, readActivity } from './sheet.js';
 import * as edit from './planning-edit.js';
+import { icon } from './icons.js';
 import { schedule } from './scheduler.js';
 import { tasksSection, blockSegments, handleTaskClick } from './tasks-view.js';
 
@@ -38,13 +39,13 @@ function renderDay(el) {
     ${weekStrip(p)}
     <div class="daynav">
       <strong>${dayLabel(day)}</strong>
-      <a class="chip" href="#planning/reglages">Réglages</a>
+      <a class="icon-btn" href="#planning/reglages" aria-label="Réglages du planning">${icon('settings')}</a>
     </div>
 
     <div class="segmented three">
       ${Object.entries(DAY_TYPES).map(([k, t]) => `
         <button class="${type === k ? 'on' : ''}" data-type="${k}" ${k === 'cours' && !hasCourses ? 'disabled' : ''}>
-          ${t.icon} ${t.label}</button>`).join('')}
+          ${icon(t.icon)}<span>${t.label}</span></button>`).join('')}
     </div>
     <p class="small muted rest-count ${rest > p.restPerMonth ? 'warn' : ''}">
       Repos ce mois-ci : <b>${rest} / ${p.restPerMonth}</b>
@@ -58,7 +59,7 @@ function renderDay(el) {
     <div class="timeline">
       ${items.map(it => row(it, nowMin, sched.segments.filter(sg => it.eid != null && sg.block === it.eid))).join('')}
     </div>
-    <button class="btn secondary add-act" data-act="add">+ Ajouter une activité</button>
+    <button class="btn secondary add-act" data-act="add">${icon('plus')}Ajouter une activité</button>
     <p class="small muted center">Touche une activité pour la modifier, une prière pour la rattraper ou non.</p>`;
 
   el.onclick = e => {
@@ -130,13 +131,13 @@ function weekStrip(p) {
       <button class="wday ${k === day ? 'on' : ''} ${k === today ? 'today' : ''}" data-day="${k}">
         <small>${'DLMMJVS'[pd.getDay()]}</small>
         <b>${pd.getDate()}</b>
-        <span>${DAY_TYPES[dayType(p, k)].icon}</span>
+        ${icon(DAY_TYPES[dayType(p, k)].icon)}
       </button>`;
   }
   return `<div class="week">
-    <button class="icon-btn" data-act="week" data-n="-1" aria-label="Semaine précédente">‹</button>
+    <button class="icon-btn" data-act="week" data-n="-1" aria-label="Semaine précédente">${icon('left')}</button>
     <div class="wdays">${cells}</div>
-    <button class="icon-btn" data-act="week" data-n="1" aria-label="Semaine suivante">›</button>
+    <button class="icon-btn" data-act="week" data-n="1" aria-label="Semaine suivante">${icon('right')}</button>
   </div>`;
 }
 
@@ -152,7 +153,7 @@ function row(it, nowMin, segs = []) {
       </button>`;
   }
   if (it.kind === 'sommeil') {
-    return `<div class="tl-mark"><span class="tl-time">${toHHMM(it.start)}</span><span>🌙 ${it.label}</span></div>`;
+    return `<div class="tl-mark"><span class="tl-time">${toHHMM(it.start)}</span>${icon('moon')}<span>${it.label}</span></div>`;
   }
   const h = Math.max(48, Math.min(160, dur * 0.7));
   const style = it.color ? `style="--c:${it.color};min-height:${h}px"` : `style="min-height:${h}px"`;
@@ -178,14 +179,14 @@ function renderSettings(el) {
     <div class="set-row">
       <span>${label}</span>
       <span class="stepper">
-        <button class="round sm" data-key="${key}" data-d="-1" aria-label="Moins">−</button>
+        <button class="round sm" data-key="${key}" data-d="-1" aria-label="Moins">${icon('minus')}</button>
         <b>${value} ${unit}</b>
-        <button class="round sm" data-key="${key}" data-d="1" aria-label="Plus">+</button>
+        <button class="round sm" data-key="${key}" data-d="1" aria-label="Plus">${icon('plus')}</button>
       </span>
     </div>`;
 
   el.innerHTML = `
-    <a class="back" href="#planning">‹ Retour</a>
+    <a class="back" href="#planning">${icon('left')}Retour</a>
 
     <div class="section-title">Prières · ${esc(p.place.city)} (${p.place.method})</div>
     <div class="card">
@@ -197,9 +198,9 @@ function renderSettings(el) {
           <span><b>${PRAYER_NAMES[n]}</b> ${toHHMM(base[n] + off)}
             <small class="muted">${off ? `(calcul ${toHHMM(base[n])} ${off > 0 ? '+' : ''}${off})` : ''}</small></span>
           <span class="stepper">
-            <button class="round sm" data-off="${n}" data-d="-1" aria-label="Une minute plus tôt">−</button>
+            <button class="round sm" data-off="${n}" data-d="-1" aria-label="Une minute plus tôt">${icon('minus')}</button>
             <b>${off > 0 ? '+' : ''}${off}</b>
-            <button class="round sm" data-off="${n}" data-d="1" aria-label="Une minute plus tard">+</button>
+            <button class="round sm" data-off="${n}" data-d="1" aria-label="Une minute plus tard">${icon('plus')}</button>
           </span>
         </div>`;
       }).join('')}
@@ -233,13 +234,13 @@ function renderSettings(el) {
 
     <div class="section-title">Modifier</div>
     <a class="card row-link" href="#planning/edt"><span><span class="name">Emploi du temps de cours</span>
-      <span class="muted small">Cours, semaines de validité, jours sans cours</span></span><span aria-hidden="true">›</span></a>
+      <span class="muted small">Cours, semaines de validité, jours sans cours</span></span>${icon('right', 'chev')}</a>
     <a class="card row-link" href="#planning/matieres"><span><span class="name">Matières</span>
-      <span class="muted small">${p.subjects.length} matières</span></span><span aria-hidden="true">›</span></a>
-    <a class="card row-link" href="#planning/modele/bibliotheque"><span><span class="name">📚 Journée Bibliothèque</span>
-      <span class="muted small">Horaires de la bibliothèque, repas, trajets…</span></span><span aria-hidden="true">›</span></a>
-    <a class="card row-link" href="#planning/modele/repos"><span><span class="name">🌿 Journée Repos</span>
-      <span class="muted small">Ce qui est prévu les jours off</span></span><span aria-hidden="true">›</span></a>`;
+      <span class="muted small">${p.subjects.length} matières</span></span>${icon('right', 'chev')}</a>
+    <a class="card row-link" href="#planning/modele/bibliotheque"><span><span class="name">Journée Bibliothèque</span>
+      <span class="muted small">Horaires de la bibliothèque, repas, trajets…</span></span>${icon('right', 'chev')}</a>
+    <a class="card row-link" href="#planning/modele/repos"><span><span class="name">Journée Repos</span>
+      <span class="muted small">Ce qui est prévu les jours off</span></span>${icon('right', 'chev')}</a>`;
 
   el.onclick = e => {
     const b = e.target.closest('[data-off],[data-key]');

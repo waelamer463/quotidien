@@ -2,6 +2,7 @@ import { getData } from './storage.js';
 import { dateKey, addDays, parseKey, esc } from './util.js';
 import { goalLabel } from './habits-model.js';
 import { currentStreak, dayResult } from './stats.js';
+import { icon } from './icons.js';
 import { overviewTiles, globalCalendar, habitTiles, habitCalendar, habitChart, bindCharts } from './stats-ui.js';
 
 let month = dateKey().slice(0, 7); // mois affiché dans les calendriers
@@ -24,7 +25,7 @@ export function render(el, [id]) {
   const h = id && habits.find(x => x.id === id);
   if (h) {
     el.innerHTML = `
-      <a class="back" href="#stats">‹ Retour</a>
+      <a class="back" href="#stats">${icon('left')}Retour</a>
       <p class="muted" style="margin:0 0 14px">${goalLabel(h) || 'Oui / Non'}</p>
       ${habitTiles(h, entries)}
       ${h.type === 'check' ? '' : `<div class="section-title">30 derniers jours</div>${habitChart(h, entries)}`}
@@ -44,17 +45,17 @@ export function render(el, [id]) {
       <a class="card habit-row" href="#stats/${h.id}">
         <span class="grow"><span class="name">${esc(h.name)}</span>
           <span class="muted small">${goalLabel(h) || 'Oui / Non'}</span>${last14(h, entries)}</span>
-        <span class="streak">🔥 ${currentStreak(h, entries)} j<small>série</small></span>
-        <span aria-hidden="true">›</span>
+        <span class="streak">${icon('flame')}${currentStreak(h, entries)} j<small>série</small></span>
+        ${icon('right', 'chev')}
       </a>`).join('')}`;
 }
 
 function monthNav() {
   const cur = dateKey().slice(0, 7);
   return `<div class="daynav">
-    <button class="icon-btn" data-month="-1" aria-label="Mois précédent">‹</button>
+    <button class="icon-btn" data-month="-1" aria-label="Mois précédent">${icon('left')}</button>
     <strong>${monthName()}</strong>
-    <button class="icon-btn" data-month="1" aria-label="Mois suivant" ${month >= cur ? 'disabled' : ''}>›</button>
+    <button class="icon-btn" data-month="1" aria-label="Mois suivant" ${month >= cur ? 'disabled' : ''}>${icon('right')}</button>
   </div>`;
 }
 

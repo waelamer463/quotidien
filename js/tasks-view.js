@@ -4,6 +4,7 @@ import { getData, update } from './storage.js';
 import { dateKey, parseKey, esc, uid } from './util.js';
 import { DIFFICULTY, nextWorkDay } from './scheduler.js';
 import { openSheet } from './sheet.js';
+import { icon } from './icons.js';
 
 export const dur = m => (m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? String(m % 60).padStart(2, '0') : ''}` : `${m} min`);
 const shortDay = k => (k === dateKey() ? "aujourd'hui" :
@@ -50,7 +51,7 @@ export function tasksSection(key, sched) {
         const o = over.find(x => x.task.id === t.id);
         return `
         <div class="task ${t.done ? 'done' : ''}">
-          <button class="task-check" data-task-done="${t.id}" aria-label="${t.done ? 'Marquer non faite' : 'Marquer faite'}">✓</button>
+          <button class="task-check" data-task-done="${t.id}" aria-label="${t.done ? 'Marquer non faite' : 'Marquer faite'}">${icon('check')}</button>
           <button class="task-body" data-task-edit="${t.id}">
             <span class="task-title">${esc(t.title)}</span>
             <span class="small muted">${dur(t.duration)} · <span class="diff d${t.difficulty}">${DIFFICULTY[t.difficulty]}</span>${t.deadline ? ` · pour ${shortDay(t.deadline)}` : ''}${o ? ` · <b class="over-tag">${dur(o.left)} non placée${o.left < t.duration ? 's' : ''}</b>` : ''}</span>
@@ -58,7 +59,7 @@ export function tasksSection(key, sched) {
         </div>`;
       }).join('') || '<p class="small muted" style="margin:4px 0">Aucune tâche pour ce jour.</p>'}
     </div>
-    <button class="btn secondary add-act" data-task-act="add">+ Ajouter une tâche</button>`;
+    <button class="btn secondary add-act" data-task-act="add">${icon('plus')}Ajouter une tâche</button>`;
 }
 
 // Contenu d'un bloc de travail : tâches placées, pauses, temps libre.

@@ -4,10 +4,11 @@ import { getData, update } from './storage.js';
 import { parseKey, esc, uid } from './util.js';
 import { DAY_TYPES, KINDS } from './planning-model.js';
 import { openSheet, activityFields, readActivity } from './sheet.js';
+import { icon } from './icons.js';
 
 const DAYS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
 const shortDate = k => parseKey(k).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
-const back = '<a class="back" href="#planning/reglages">‹ Réglages</a>';
+const back = `<a class="back" href="#planning/reglages">${icon('left')}Réglages</a>`;
 
 /* ---------- Modèles de journée ---------- */
 
@@ -28,7 +29,7 @@ export function renderTemplate(el, type) {
             <span class="tl-sub">${KINDS[a.kind] || ''}${a.away ? ' · dehors' : ''}</span></span>
         </div>`).join('')}
     </div>
-    <button class="btn secondary add-act" data-add>+ Ajouter une activité</button>`;
+    <button class="btn secondary add-act" data-add>${icon('plus')}Ajouter une activité</button>`;
 
   el.onclick = e => {
     const t = e.target.closest('[data-i],[data-add]');
@@ -63,7 +64,7 @@ export function renderTimetable(el, id) {
   const p = getData().planning;
   const c = p.courses.find(x => x.id === id) || p.courses[0];
   if (!c) {
-    el.innerHTML = `${back}<button class="btn" data-new>+ Créer un emploi du temps</button>`;
+    el.innerHTML = `${back}<button class="btn" data-new>${icon('plus')}Créer un emploi du temps</button>`;
     el.onclick = e => { if (e.target.closest('[data-new]')) newTimetable(el, null); };
     return 'Emploi du temps';
   }
@@ -75,7 +76,7 @@ export function renderTimetable(el, id) {
       `<a class="chip ${x.id === c.id ? 'on' : ''}" href="#planning/edt/${x.id}">${esc(x.name)}</a>`).join('')}</div>` : ''}
 
     <div class="card row-link" data-rename role="button" tabindex="0">
-      <span><span class="name">${esc(c.name)}</span><span class="muted small">Toucher pour renommer</span></span><span>✎</span>
+      <span><span class="name">${esc(c.name)}</span><span class="muted small">Toucher pour renommer</span></span>${icon('edit')}
     </div>
 
     <div class="section-title">Semaines où il s'applique</div>
@@ -83,14 +84,14 @@ export function renderTimetable(el, id) {
       ${c.periods.map((per, i) => `
         <div class="set-row"><span>Du <b>${shortDate(per.start)}</b> au <b>${shortDate(per.end)}</b></span>
           <button class="link" data-del-period="${i}">Retirer</button></div>`).join('') || '<p class="muted small">Aucune période : cet emploi du temps ne s\'applique jamais.</p>'}
-      <button class="btn small secondary" data-add-period style="margin-top:8px">+ Répéter sur une période</button>
+      <button class="btn small secondary" data-add-period style="margin-top:8px">${icon('plus')}Répéter sur une période</button>
     </div>
 
     <div class="section-title">Jours sans cours (fériés, annulations…)</div>
     <div class="card">
       <div class="presets">${c.except.map((k, i) =>
-        `<button class="chip" data-del-except="${i}">${shortDate(k)} ✕</button>`).join('') || '<span class="muted small">Aucun</span>'}</div>
-      <button class="btn small secondary" data-add-except style="margin-top:8px">+ Ajouter un jour sans cours</button>
+        `<button class="chip" data-del-except="${i}">${shortDate(k)} ${icon('close')}</button>`).join('') || '<span class="muted small">Aucun</span>'}</div>
+      <button class="btn small secondary" data-add-except style="margin-top:8px">${icon('plus')}Ajouter un jour sans cours</button>
     </div>
 
     <div class="section-title">Semaine type</div>
@@ -99,7 +100,7 @@ export function renderTimetable(el, id) {
       return `
       <div class="edt-day">
         <div class="edt-head"><strong>${DAYS[d]}</strong>
-          <button class="link" data-add-slot="${d}">+ cours</button></div>
+          <button class="link" data-add-slot="${d}">${icon('plus')}Cours</button></div>
         ${slots.map(s => `
           <div class="tl-item k-cours editable" style="--c:${subj(s.subject).color}" data-slot="${s.id}" role="button" tabindex="0">
             <span class="tl-time">${s.start}<small>${s.end}</small></span>
@@ -231,9 +232,9 @@ export function renderSubjects(el) {
         <span class="subj-dot" style="background:${m.color}"></span>
         <span class="grow"><span class="name">${esc(m.name)}</span>
           <span class="muted small">${esc(m.short)} · ${used(m.id)} cours</span></span>
-        <span aria-hidden="true">›</span>
+        ${icon('right', 'chev')}
       </div>`).join('')}
-    <button class="btn" data-add>+ Ajouter une matière</button>`;
+    <button class="btn" data-add>${icon('plus')}Ajouter une matière</button>`;
 
   el.onclick = e => {
     const t = e.target.closest('[data-id],[data-add]');

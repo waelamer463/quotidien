@@ -2,6 +2,7 @@
 // onSave(FormData) peut renvoyer un message d'erreur (chaîne) pour garder le panneau ouvert.
 
 import { esc } from './util.js';
+import { icon } from './icons.js';
 import { KINDS } from './planning-model.js';
 
 export function openSheet({ title, body, onSave, onDelete, saveLabel = 'Enregistrer' }) {
@@ -11,7 +12,7 @@ export function openSheet({ title, body, onSave, onDelete, saveLabel = 'Enregist
     <form class="sheet form" novalidate>
       <div class="sheet-head">
         <strong>${esc(title)}</strong>
-        <button type="button" class="icon-btn" data-close aria-label="Fermer">×</button>
+        <button type="button" class="icon-btn" data-close aria-label="Fermer">${icon('close')}</button>
       </div>
       ${body}
       <p class="error" hidden></p>

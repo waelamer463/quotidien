@@ -5,9 +5,9 @@ import { parseKey } from './util.js';
 import { prayerTimes, PRAYERS, PRAYER_NAMES } from './prayers.js';
 
 export const DAY_TYPES = {
-  bibliotheque: { label: 'Bibliothèque', icon: '📚' },
-  cours: { label: 'Cours', icon: '🎓' },
-  repos: { label: 'Repos', icon: '🌿' },
+  bibliotheque: { label: 'Bibliothèque', icon: 'library' },
+  cours: { label: 'Cours', icon: 'course' },
+  repos: { label: 'Repos', icon: 'rest' },
 };
 
 export const toMin = hhmm => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
@@ -80,9 +80,12 @@ function coursDay(p, slots, fajr) {
     let a = toMin(s.end);
     const b = toMin(next.start);
     if (!lunch && b - a >= r.lunch + 15 && a < 14 * 60 && b > 11 * 60 + 30) {
-      out.push(item(a, a + r.lunch, 'Déjeuner', 'repas', { away: true }));
+      // déjeuner vers midi (ou dès que possible), le reste du trou devient du travail
+      const l = Math.min(Math.max(a, 12 * 60), b - r.lunch);
+      if (l - a >= 30) out.push(item(a, l, 'Travail sur place', 'travail', { away: true }));
+      out.push(item(l, l + r.lunch, 'Déjeuner', 'repas', { away: true }));
       lunch = true;
-      a += r.lunch;
+      a = l + r.lunch;
     }
     if (b - a >= 30) out.push(item(a, b, 'Travail sur place', 'travail', { away: true }));
   });

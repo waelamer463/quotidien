@@ -2,6 +2,8 @@ import { getData, update, requestPersistence } from './storage.js';
 import * as habitsView from './habits-view.js';
 import * as statsView from './stats-view.js';
 import * as planningView from './planning-view.js';
+import { icon } from './icons.js';
+import { renderSky } from './sky.js';
 
 const views = {
   habitudes: {
@@ -30,10 +32,11 @@ function render() {
   el.onclick = el.onkeydown = el.onchange = null;
   const title = views[tab].render(el, params);
   document.getElementById('view-title').textContent = title || views[tab].title;
-  document.querySelectorAll('.tabbar a').forEach(a => {
-    a.classList.toggle('active', a.dataset.tab === tab);
-  });
+  const tabs = [...document.querySelectorAll('.tabbar a')];
+  tabs.forEach(a => a.classList.toggle('active', a.dataset.tab === tab));
+  document.querySelector('.tabbar').style.setProperty('--i', tabs.findIndex(a => a.dataset.tab === tab));
   window.scrollTo(0, 0);
+  renderSky(document.querySelector('.topbar'));
   update(d => { d.settings.lastTab = tab; });
 }
 
@@ -42,8 +45,18 @@ function renderDate() {
   document.getElementById('today').textContent = txt.charAt(0).toUpperCase() + txt.slice(1);
 }
 
+document.querySelectorAll('[data-icon]').forEach(s => { s.outerHTML = icon(s.dataset.icon); });
+
+// Le ciel et la date se mettent à jour chaque minute (et au retour dans l'app).
+function tick() {
+  renderDate();
+  renderSky(document.querySelector('.topbar'));
+}
+setInterval(tick, 60_000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+
 window.addEventListener('hashchange', render);
-renderDate();
+tick();
 render();
 requestPersistence();
 

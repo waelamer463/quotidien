@@ -1,6 +1,7 @@
 import { getData, update } from './storage.js';
 import { dateKey, addDays, dayLabel, fmt, esc, uid } from './util.js';
 import { TYPES, WEEK, PRESETS, isScheduled, status, goalLabel, daysLabel, progress } from './habits-model.js';
+import { icon } from './icons.js';
 import { SOURCES, SHORTCUT_URL, parse, apply, hasLinkedHabits } from './health-import.js';
 
 let importMsg = ''; // résultat du dernier import, affiché dans la carte Santé
@@ -28,9 +29,9 @@ function renderDay(el) {
 
   el.innerHTML = `
     <div class="daynav">
-      <button class="icon-btn" data-act="prev" aria-label="Jour précédent">‹</button>
+      <button class="icon-btn" data-act="prev" aria-label="Jour précédent">${icon('left')}</button>
       <strong>${dayLabel(day)}</strong>
-      <button class="icon-btn" data-act="next" aria-label="Jour suivant" ${day === today ? 'disabled' : ''}>›</button>
+      <button class="icon-btn" data-act="next" aria-label="Jour suivant" ${day === today ? 'disabled' : ''}>${icon('right')}</button>
     </div>
     ${day === today && hasLinkedHabits() ? healthCard() : ''}
     ${habits.length === 0 ? emptyState() : `
@@ -132,7 +133,7 @@ function habitCard(h, value) {
     return `
       <button class="card habit check ${st}" data-id="${h.id}" data-act="toggle">
         <span class="name">${esc(h.name)}</span>
-        <span class="tick" aria-hidden="true">✓</span>
+        <span class="tick" aria-hidden="true">${icon('check')}</span>
       </button>`;
   }
   const hint = st === 'over' ? 'Limite dépassée' : st === 'done' ? 'Objectif atteint' : '';
@@ -144,12 +145,12 @@ function habitCard(h, value) {
       </div>
       <div class="bar"><i style="width:${progress(h, value)}%"></i></div>
       <div class="qty">
-        <button class="round" data-act="dec" aria-label="Retirer ${fmt(h.step)}">−</button>
+        <button class="round" data-act="dec" aria-label="Retirer ${fmt(h.step)}">${icon('minus')}</button>
         <button class="value" data-act="edit">
           ${fmt(value)} <small>${esc(h.unit)}</small>
           <span class="hint">${hint || 'Toucher pour saisir'}</span>
         </button>
-        <button class="round" data-act="inc" aria-label="Ajouter ${fmt(h.step)}">+</button>
+        <button class="round" data-act="inc" aria-label="Ajouter ${fmt(h.step)}">${icon('plus')}</button>
       </div>
       <div class="editor" hidden>
         <input type="text" inputmode="decimal" placeholder="Quantité" aria-label="Quantité">
@@ -166,7 +167,7 @@ function emptyState() {
       <p class="muted">Choisis un modèle (modifiable) ou crée la tienne.</p>
     </div>
     ${presetButtons()}
-    <a class="btn" href="#habitudes/nouvelle">+ Nouvelle habitude</a>`;
+    <a class="btn" href="#habitudes/nouvelle">${icon('plus')}Nouvelle habitude</a>`;
 }
 
 function presetButtons() {
@@ -174,7 +175,7 @@ function presetButtons() {
   const items = Object.entries(PRESETS).filter(([, p]) => !used.has(p.name));
   if (!items.length) return '';
   return `<div class="presets">${items.map(([k, p]) =>
-    `<a class="chip" href="#habitudes/nouvelle/${k}">+ ${esc(p.name)}</a>`).join('')}</div>`;
+    `<a class="chip" href="#habitudes/nouvelle/${k}">${icon('plus')}${esc(p.name)}</a>`).join('')}</div>`;
 }
 
 /* ---------- Liste de gestion ---------- */
@@ -182,17 +183,17 @@ function presetButtons() {
 function renderManage(el) {
   const { habits } = getData();
   el.innerHTML = `
-    <a class="back" href="#habitudes">‹ Retour</a>
+    <a class="back" href="#habitudes">${icon('left')}Retour</a>
     ${habits.map(h => `
       <a class="card row-link" href="#habitudes/modifier/${h.id}">
         <span>
           <span class="name">${esc(h.name)}</span>
           <span class="muted small">${[goalLabel(h) || TYPES.check, daysLabel(h)].join(' · ')}</span>
         </span>
-        <span aria-hidden="true">›</span>
+        ${icon('right', 'chev')}
       </a>`).join('') || '<p class="muted center">Aucune habitude pour l\'instant.</p>'}
     ${presetButtons()}
-    <a class="btn" href="#habitudes/nouvelle">+ Nouvelle habitude</a>`;
+    <a class="btn" href="#habitudes/nouvelle">${icon('plus')}Nouvelle habitude</a>`;
   el.onclick = null;
   return 'Mes habitudes';
 }
@@ -205,7 +206,7 @@ function renderForm(el, h) {
   const limited = Boolean(h.start || h.end);
 
   el.innerHTML = `
-    <a class="back" href="#habitudes${editing ? '/gerer' : ''}">‹ Retour</a>
+    <a class="back" href="#habitudes${editing ? '/gerer' : ''}">${icon('left')}Retour</a>
     <form class="form" data-type="${h.type}" novalidate>
       <label>Nom
         <input name="name" required maxlength="40" value="${esc(h.name)}" placeholder="Ex. Lecture">
