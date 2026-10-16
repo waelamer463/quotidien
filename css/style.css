@@ -793,3 +793,61 @@ body.no-select { -webkit-user-select: none; user-select: none; }
 .brick.conflict { box-shadow: inset 3px 0 0 var(--c), inset 0 0 0 2px var(--danger); }
 a.banner { color: inherit; text-decoration: none; }
 a.banner strong { margin-bottom: 2px; }
+
+/* ---------- Stats ---------- */
+.hero { padding-bottom: 14px; }
+.hero-top { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.hero-score { font-size: 56px; font-weight: 800; letter-spacing: -0.04em; line-height: 1; }
+.hero-score small { font-size: 18px; font-weight: 700; color: var(--muted); letter-spacing: 0; margin-left: 2px; }
+.hero-text { margin: 0; text-align: right; font-size: 14px; color: var(--muted); }
+.hero-text b { color: var(--text); }
+.score-readout { margin: 16px 0 6px; font-weight: 700; font-size: 14px; }
+.score-chart { display: block; width: 100%; height: auto; overflow: visible; touch-action: pan-y; margin-bottom: 8px; }
+.sc-base { stroke: var(--line); }
+.sc-bar { fill: var(--muted); opacity: .3; }
+.sc-today { fill: var(--accent); }
+.sc-none { fill: var(--muted); opacity: .4; }
+.sc-avg { stroke: var(--text); stroke-width: 1; stroke-dasharray: 3 3; opacity: .5; }
+.sc-axis { font-size: 10px; fill: var(--muted); font-family: inherit; font-weight: 600; }
+.sc-today-lab { fill: var(--accent); font-weight: 800; }
+.sc-hit { fill: transparent; cursor: pointer; }
+.sc-hit.on { fill: var(--text); opacity: .06; }
+
+.stack { display: flex; gap: 2px; height: 12px; margin: 12px 0 8px; }
+.stack i { border-radius: 4px; }
+.stack .ok, .stack-legend .ok { background: var(--ok); }
+.stack .warm, .stack-legend .warm { background: var(--warm); }
+.stack .bad, .stack-legend .bad { background: var(--danger); }
+.stack-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--muted); }
+.stack-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.stack-legend i { width: 10px; height: 10px; border-radius: 3px; }
+.stack-legend b { color: var(--text); }
+.per-prayer { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 14px 0 10px; text-align: center; }
+.per-prayer div { padding: 8px 2px; border-radius: var(--r-sm); background: var(--surface-2); }
+.per-prayer b { display: block; font-size: 16px; font-weight: 800; }
+.per-prayer span { font-size: 11px; color: var(--muted); font-weight: 600; }
+.tile b small { font-size: 15px; color: var(--muted); font-weight: 700; }
+.tile.warn b { color: var(--danger); }
+.gym-weeks { display: flex; gap: 4px; margin-bottom: 4px; }
+.gym-weeks i {
+  flex: 1; height: 28px; border-radius: 7px; display: grid; place-items: center;
+  font-style: normal; font-weight: 800; font-size: 13px; background: var(--surface-2); color: var(--muted);
+}
+.gym-weeks i.ok { background: var(--ok); color: #fff; }
+.gym-weeks i.cur { box-shadow: inset 0 0 0 2px var(--accent); }
+.note { margin: 2px 2px 0; }
+
+:root { --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; }
+@media (prefers-color-scheme: dark) { :root { --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; } }
+.share-row { display: grid; grid-template-columns: 92px 1fr; align-items: center; gap: 10px; margin-bottom: 8px; }
+.share { display: flex; gap: 2px; height: 18px; }
+.share.empty { background: var(--surface-2); border-radius: 5px; }
+.share i, .sw { border-radius: 4px; }
+.s1 { background: var(--s1); } .s2 { background: var(--s2); } .s3 { background: var(--s3); }
+.s4 { background: var(--s4); } .s5 { background: var(--s5); } .s6 { background: var(--s6); }
+.share-legend { width: 100%; border-collapse: collapse; margin: 10px 0 8px; font-size: 14px; }
+.share-legend th { text-align: right; font-size: 12px; color: var(--muted); font-weight: 700; padding-bottom: 4px; }
+.share-legend td { padding: 5px 0; border-top: 1px solid var(--line); }
+.share-legend td:not(:first-child) { text-align: right; font-weight: 700; }
+.share-legend td:first-child { display: flex; align-items: center; gap: 8px; }
+.sw { display: inline-block; width: 12px; height: 12px; }
