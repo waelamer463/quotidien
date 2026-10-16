@@ -1,7 +1,7 @@
 // Stratégie "réseau d'abord" : en ligne, tu reçois toujours la dernière version ;
 // hors ligne, l'app se charge depuis le cache.
 
-const CACHE = 'quotidien-v8';
+const CACHE = 'quotidien-v9';
 const FILES = [
   './',
   'index.html',
@@ -19,6 +19,8 @@ const FILES = [
   'js/planning-view.js',
   'js/planning-edit.js',
   'js/sheet.js',
+  'js/scheduler.js',
+  'js/tasks-view.js',
   'js/stats-ui.js',
   'js/stats-view.js',
   'manifest.webmanifest',

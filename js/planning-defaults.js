@@ -10,6 +10,8 @@ export function planningDefaults() {
     commute: { cours: 65 }, // minutes de trajet vers la fac
     // Durées utilisées pour construire les jours de cours (minutes)
     coursRules: { prep: 45, lunch: 45, dinner: 45, eveningWork: 120 },
+    // Concentration : sessions de travail, pauses (minutes)
+    focus: { session: 180, pause: 15, maxPauses: 2 },
 
     subjects: [
       { id: 'unix', name: 'Initiation à l\'environnement UNIX', short: 'UNIX', color: '#4a6fa5' },

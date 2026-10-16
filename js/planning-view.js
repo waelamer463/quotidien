@@ -4,6 +4,8 @@ import { PRAYERS, PRAYER_NAMES, prayerTimes } from './prayers.js';
 import { DAY_TYPES, buildDay, baseItems, toStored, courseSlots, dayType, restDaysInMonth, toHHMM } from './planning-model.js';
 import { openSheet, activityFields, readActivity } from './sheet.js';
 import * as edit from './planning-edit.js';
+import { schedule } from './scheduler.js';
+import { tasksSection, blockSegments, handleTaskClick } from './tasks-view.js';
 
 let day = dateKey();
 
@@ -21,8 +23,10 @@ export function render(el, [sub, arg]) {
 /* ---------- Journée ---------- */
 
 function renderDay(el) {
-  const p = getData().planning;
-  const { type, items } = buildDay(p, day);
+  const { planning: p, tasks } = getData();
+  const built = buildDay(p, day);
+  const { type, items } = built;
+  const sched = schedule(p, tasks, day, built);
   const month = day.slice(0, 7);
   const rest = restDaysInMonth(p, month);
   const overridden = Boolean(p.days[day]?.type || p.days[day]?.items);
@@ -48,13 +52,17 @@ function renderDay(el) {
     ${overridden ? `<p class="small muted modified">${p.days[day]?.items ? 'Journée modifiée à la main' : 'Type de jour changé'} ·
       <button class="link" data-act="reset">Revenir au planning prévu</button></p>` : ''}
 
+    ${tasksSection(day, sched)}
+
+    <div class="section-title">Journée</div>
     <div class="timeline">
-      ${items.map((it, i) => row(it, items[i + 1], nowMin)).join('')}
+      ${items.map(it => row(it, nowMin, sched.segments.filter(sg => it.eid != null && sg.block === it.eid))).join('')}
     </div>
     <button class="btn secondary add-act" data-act="add">+ Ajouter une activité</button>
     <p class="small muted center">Touche une activité pour la modifier, une prière pour la rattraper ou non.</p>`;
 
   el.onclick = e => {
+    if (handleTaskClick(e, day, sched, () => renderDay(el))) return;
     const t = e.target.closest('[data-type],[data-act],[data-day],[data-eid]');
     if (!t) return;
     if (t.dataset.eid) return editActivity(el, Number(t.dataset.eid));
@@ -132,7 +140,7 @@ function weekStrip(p) {
   </div>`;
 }
 
-function row(it, next, nowMin) {
+function row(it, nowMin, segs = []) {
   const dur = it.end - it.start;
   const current = nowMin >= it.start && nowMin < it.end && !it.prayer;
   if (it.prayer) {
@@ -152,10 +160,11 @@ function row(it, next, nowMin) {
     <div class="tl-item k-${it.kind} ${current ? 'now' : ''} ${it.optional ? 'optional' : ''} ${it.eid != null ? 'editable' : ''}"
       ${it.eid != null ? `data-eid="${it.eid}" role="button" tabindex="0"` : ''} ${style}>
       <span class="tl-time">${toHHMM(it.start)}<small>${toHHMM(it.end)}</small></span>
-      <span class="tl-body">
+      <div class="tl-body">
         <span class="tl-label">${esc(it.label)}</span>
         ${it.sub ? `<span class="tl-sub">${esc(it.sub)}</span>` : ''}
-      </span>
+        ${blockSegments(segs)}
+      </div>
       <span class="tl-dur">${dur >= 60 ? `${Math.floor(dur / 60)} h${dur % 60 ? String(dur % 60).padStart(2, '0') : ''}` : `${dur} min`}</span>
     </div>`;
 }
@@ -215,6 +224,13 @@ function renderSettings(el) {
       ${stepper('coursRules.eveningWork', p.coursRules.eveningWork, 'Travail du soir (si retard)')}
     </div>
 
+    <div class="section-title">Concentration</div>
+    <div class="card">
+      ${stepper('focus.session', p.focus.session, 'Session de travail max')}
+      ${stepper('focus.pause', p.focus.pause, 'Durée d\'une pause')}
+      ${stepper('focus.maxPauses', p.focus.maxPauses, 'Pauses max par jour', '')}
+    </div>
+
     <div class="section-title">Modifier</div>
     <a class="card row-link" href="#planning/edt"><span><span class="name">Emploi du temps de cours</span>
       <span class="muted small">Cours, semaines de validité, jours sans cours</span></span><span aria-hidden="true">›</span></a>
@@ -233,7 +249,7 @@ function renderSettings(el) {
       if (b.dataset.off) pl.offsets[b.dataset.off] = (pl.offsets[b.dataset.off] || 0) + d;
       else {
         const [a, k] = b.dataset.key.split('.');
-        const step = a === 'restPerMonth' ? 1 : 5;
+        const step = { restPerMonth: 1, 'focus.maxPauses': 1, 'focus.session': 15 }[b.dataset.key] || 5;
         if (k) pl[a] = { ...pl[a], [k]: Math.max(0, pl[a][k] + d * step) };
         else pl[a] = Math.max(0, pl[a] + d * step);
       }
