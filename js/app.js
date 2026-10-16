@@ -1,10 +1,15 @@
 import { getData, update, requestPersistence } from './storage.js';
 import * as habitsView from './habits-view.js';
+import * as statsView from './stats-view.js';
 
 const views = {
   habitudes: {
     title: 'Habitudes',
     render: habitsView.render,
+  },
+  stats: {
+    title: 'Stats',
+    render: statsView.render,
   },
   planning: {
     title: 'Planning',

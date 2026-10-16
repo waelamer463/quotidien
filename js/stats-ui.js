@@ -51,7 +51,7 @@ export function habitCalendar(h, entries, month = dateKey().slice(0, 7)) {
     return r ? { cls: r, glyph: GLYPH[r] } : { cls: 'none' };
   }) + `<div class="legend">
     <span><i class="done">✓</i> Réussi</span>
-    ${h.type === 'check' ? '' : '<span><i class="over">!</i> Dépassé</span>'}
+    ${['max', 'range'].includes(h.type) ? '<span><i class="over">!</i> Dépassé</span>' : ''}
     <span><i class="todo"></i> Manqué</span>
   </div>`;
 }
@@ -84,7 +84,8 @@ export function habitChart(h, entries, days = 30) {
     pts.push({ k, r, v: r ? entries[k]?.[h.id] ?? 0 : null });
   }
   const vals = pts.filter(p => p.v !== null).map(p => p.v);
-  const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+  let avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+  avg = avg >= 100 ? Math.round(avg) : Math.round(avg * 10) / 10;
   const top = Math.max(...vals, h.max ?? 0, h.min ?? 0) * 1.12 || 1;
 
   const W = 340, H = 170, L = 4, R = 44, T = 8, B = 22;
@@ -115,8 +116,8 @@ export function habitChart(h, entries, days = 30) {
   const xl = [0, Math.floor(days / 2), days - 1].map(i =>
     `<text class="axis" x="${L + i * slot + slot / 2}" y="${H - 6}" text-anchor="middle">${parseKey(pts[i].k).toLocaleDateString('fr-FR', { day: 'numeric', month: 'numeric' })}</text>`).join('');
 
-  return `<div class="chart" data-default="Moyenne : ${fmt(Math.round(avg * 10) / 10)}${unit} / jour">
-    <div class="readout">Moyenne : ${fmt(Math.round(avg * 10) / 10)}${unit} / jour</div>
+  return `<div class="chart" data-default="Moyenne : ${fmt(avg)}${unit} / jour">
+    <div class="readout">Moyenne : ${fmt(avg)}${unit} / jour</div>
     <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(h.name)}, ${days} derniers jours. Objectif ${esc(goalLabel(h))}.">
       <line class="base" x1="${L}" x2="${L + pw}" y1="${T + ph}" y2="${T + ph}"/>
       ${goal.join('')}${bars}${xl}
