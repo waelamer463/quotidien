@@ -709,3 +709,73 @@ button.task { width: 100%; border: none; font: inherit; color: inherit; text-ali
 .sheet[data-kind="simple"] .k-duree, .sheet[data-kind="simple"] .k-bloc,
 .sheet[data-kind="duree"] .k-bloc, .sheet[data-kind="bloc"] .k-duree { display: none; }
 .sheet:not([data-repeat="week"]) .r-week { display: none; }
+
+/* ---------- Planning en grille ---------- */
+.mini-seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 10px; background: var(--surface-2); }
+.mini-seg button { border: none; background: none; padding: 5px 12px; border-radius: 8px; font: inherit; font-size: 13px; font-weight: 700; color: var(--muted); cursor: pointer; }
+.mini-seg button.on { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+
+.grid { position: relative; margin: 4px 0 10px; }
+.g-hour { position: absolute; left: 0; right: 0; height: 0; border-top: 1px solid var(--line); }
+.g-hour span { position: absolute; top: -8px; left: 0; width: 42px; font-size: 11px; font-weight: 700; color: var(--muted); background: var(--bg); }
+.g-area { position: absolute; top: 0; bottom: 0; left: 48px; right: 0; }
+
+.brick {
+  --c: var(--k-routine);
+  position: absolute; overflow: hidden;
+  padding: 5px 8px 5px 10px; border-radius: 10px;
+  background: color-mix(in srgb, var(--c) 16%, var(--surface));
+  box-shadow: inset 3px 0 0 var(--c);
+  font-size: 13px; line-height: 1.25;
+  -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  transition: box-shadow .15s, transform .15s var(--ease);
+}
+.brick.k-travail { --c: var(--k-travail); }
+.brick.k-trajet { --c: var(--k-trajet); }
+.brick.k-repas { --c: var(--k-repas); }
+.brick.k-priere { --c: var(--k-priere); }
+.brick.k-repos { --c: var(--k-repos); background: transparent; box-shadow: inset 3px 0 0 var(--c), inset 0 0 0 1px var(--line); }
+.brick.k-perso { --c: var(--ok); }
+.brick.k-tache { --c: var(--accent); background: color-mix(in srgb, var(--accent) 22%, var(--surface)); }
+.brick.k-tache.p3 { --c: var(--danger); }
+.brick.k-tache.p2 { --c: var(--warm); }
+.brick.k-tache.done .b-label { text-decoration: line-through; opacity: .6; }
+.brick.optional { background: transparent; box-shadow: inset 3px 0 0 var(--c), inset 0 0 0 1px var(--line); }
+.brick.movable { cursor: grab; }
+.b-time { display: block; font-size: 11px; font-weight: 700; color: var(--muted); }
+.b-label { display: block; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.b-sub { display: block; font-size: 12px; color: var(--muted); }
+.brick.tiny { display: flex; align-items: center; gap: 6px; padding-top: 2px; padding-bottom: 2px; }
+.brick.tiny .b-time { display: inline; }
+.b-seg {
+  position: absolute; left: 38%; right: 6px; padding: 1px 6px; border-radius: 6px; overflow: hidden;
+  background: var(--surface); font-size: 11px; font-weight: 700; white-space: nowrap; text-overflow: ellipsis;
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.b-seg.p3 { box-shadow: inset 2px 0 0 var(--danger); }
+.b-seg.p2 { box-shadow: inset 2px 0 0 var(--warm); }
+.b-grip {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 16px; cursor: ns-resize; touch-action: none;
+}
+.b-grip::after {
+  content: ''; position: absolute; left: 50%; bottom: 4px; width: 24px; height: 3px; margin-left: -12px;
+  border-radius: 2px; background: color-mix(in srgb, var(--c) 60%, transparent);
+}
+.brick.dragging {
+  z-index: 5; transform: scale(1.02); cursor: grabbing;
+  box-shadow: inset 3px 0 0 var(--c), 0 12px 28px -8px rgba(13, 19, 34, .35);
+}
+body.no-select { -webkit-user-select: none; user-select: none; }
+
+.g-prayer {
+  position: absolute; left: -6px; right: 0; height: 0; padding: 0; border: none; background: none;
+  border-top: 1.5px dashed color-mix(in srgb, var(--k-priere) 55%, transparent); cursor: pointer; z-index: 2;
+}
+.g-prayer span {
+  position: absolute; right: 0; top: -10px; padding: 1px 8px; border-radius: 999px;
+  background: var(--k-priere); color: #fff; font: inherit; font-size: 11px; font-weight: 700; white-space: nowrap;
+}
+.g-prayer.deferred { border-top-color: var(--line); }
+.g-prayer.deferred span { background: var(--surface-2); color: var(--muted); }
+.g-now { position: absolute; left: -6px; right: 0; height: 2px; background: var(--danger); z-index: 3; }
+.g-now::before { content: ''; position: absolute; left: -4px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--danger); }

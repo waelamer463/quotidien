@@ -6,7 +6,8 @@ import { openSheet, activityFields, readActivity } from './sheet.js';
 import * as edit from './planning-edit.js';
 import { icon } from './icons.js';
 import { schedule } from './scheduler.js';
-import { taskBlocks, blockSegments, handleTodoClick } from './todo-view.js';
+import { taskBlocks, blockSegments, handleTodoClick, editTask } from './todo-view.js';
+import { gridHTML, bindGrid } from './grid-view.js';
 
 let day = dateKey();
 
@@ -34,6 +35,9 @@ function renderDay(el) {
   const hasCourses = courseSlots(p, day).length > 0;
   const now = new Date();
   const nowMin = day === dateKey() ? now.getHours() * 60 + now.getMinutes() : -1;
+  const asList = getData().settings.planView === 'liste';
+  const all = [...items, ...taskBlocks(day)].sort((a, b) => a.start - b.start);
+  const grid = asList ? null : gridHTML(all, { nowMin, segments: sched.segments });
 
   el.innerHTML = `
     ${weekStrip(p)}
@@ -53,15 +57,39 @@ function renderDay(el) {
     ${overridden ? `<p class="small muted modified">${p.days[day]?.items ? 'Journée modifiée à la main' : 'Type de jour changé'} ·
       <button class="link" data-act="reset">Revenir au planning prévu</button></p>` : ''}
 
-    <div class="section-title">Journée</div>
-    <div class="timeline">
-      ${[...items, ...taskBlocks(day)].sort((a, b) => a.start - b.start).map(it => row(it, nowMin, sched.segments.filter(sg => it.eid != null && sg.block === it.eid))).join('')}
+    <div class="ess-head">
+      <h2 class="section-title">Journée</h2>
+      <div class="mini-seg">
+        <button class="${asList ? '' : 'on'}" data-view="grille">Grille</button>
+        <button class="${asList ? 'on' : ''}" data-view="liste">Liste</button>
+      </div>
     </div>
+    ${asList ? `<div class="timeline">
+      ${all.map(it => row(it, nowMin, sched.segments.filter(sg => it.eid != null && sg.block === it.eid))).join('')}
+    </div>` : grid.html}
     <button class="btn secondary add-act" data-act="add">${icon('plus')}Ajouter une activité</button>
-    <p class="small muted center">Touche une activité pour la modifier, une prière pour la rattraper ou non.</p>`;
+    <p class="small muted center">${asList ? 'Touche une activité pour la modifier, une prière pour la rattraper ou non.'
+      : 'Touche une brique pour la modifier. Appui long puis glisse pour la déplacer, poignée du bas pour changer sa durée.'}</p>`;
+
+  if (!asList) {
+    bindGrid(el, grid, {
+      onTap: it => {
+        if (it.taskId) editTask(getData().tasks.find(t => t.id === it.taskId), () => renderDay(el));
+        else if (it.eid != null) editActivity(el, it.eid);
+      },
+      onChange: (it, start, end) => { moveBrick(it, start, end); renderDay(el); },
+      onPrayer: it => {
+        setDay(d => { d.prayers = { ...d.prayers, [it.prayer]: it.deferred ? 'heure' : 'rattrapage' }; });
+        renderDay(el);
+      },
+    });
+  }
 
   el.onclick = e => {
     if (handleTodoClick(e, day, () => renderDay(el))) return;
+    const v = e.target.closest('[data-view]');
+    if (v) { update(d => { d.settings.planView = v.dataset.view; }); return renderDay(el); }
+    if (e.target.closest('.grid')) return; // gestes gérés par la grille
     const t = e.target.closest('[data-type],[data-act],[data-day],[data-eid]');
     if (!t) return;
     if (t.dataset.eid) return editActivity(el, Number(t.dataset.eid));
@@ -80,6 +108,21 @@ function renderDay(el) {
     }
     renderDay(el);
   };
+}
+
+// Déplacement / redimensionnement d'une brique (ce jour seulement).
+function moveBrick(it, start, end) {
+  if (it.taskId) {
+    update(d => {
+      const t = d.tasks.find(x => x.id === it.taskId);
+      Object.assign(t, { start: toHHMM(start), end: toHHMM(end), duration: end - start });
+    });
+    return;
+  }
+  const p = getData().planning;
+  const list = p.days[day]?.items || baseItems(p, day).map(toStored);
+  const next = list.map((a, i) => (i === it.eid ? { ...a, start: toHHMM(start), end: toHHMM(end) } : a));
+  setDay(d => { d.items = next; }); // l'ordre est conservé pour garder les repères (eid)
 }
 
 // Modifier / ajouter une activité de ce jour : la journée est d'abord "figée" pour ne toucher qu'elle.
