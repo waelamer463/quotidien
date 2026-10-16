@@ -1,6 +1,9 @@
 import { getData, update } from './storage.js';
 import { dateKey, addDays, dayLabel, fmt, esc, uid } from './util.js';
 import { TYPES, WEEK, PRESETS, isScheduled, status, goalLabel, daysLabel, progress } from './habits-model.js';
+import { SOURCES, SHORTCUT_URL, parse, apply, hasLinkedHabits } from './health-import.js';
+
+let importMsg = ''; // résultat du dernier import, affiché dans la carte Santé
 
 let day = dateKey(); // jour affiché (on peut revenir en arrière pour rattraper une saisie)
 
@@ -29,6 +32,7 @@ function renderDay(el) {
       <strong>${dayLabel(day)}</strong>
       <button class="icon-btn" data-act="next" aria-label="Jour suivant" ${day === today ? 'disabled' : ''}>›</button>
     </div>
+    ${day === today && hasLinkedHabits() ? healthCard() : ''}
     ${habits.length === 0 ? emptyState() : `
       <div class="summary">
         <span><b>${done}</b> / ${list.length} objectifs atteints</span>
@@ -46,6 +50,11 @@ function renderDay(el) {
     const h = card && habits.find(x => x.id === card.dataset.id);
     const act = btn.dataset.act;
 
+    if (act === 'paste') return pasteImport(el);
+    if (act === 'manual') {
+      const txt = el.querySelector('.health textarea').value;
+      return runImport(el, txt);
+    }
     if (act === 'prev') day = addDays(day, -1);
     else if (act === 'next') day = addDays(day, 1);
     else if (act === 'toggle') setValue(h, values[h.id] ? 0 : 1);
@@ -70,6 +79,44 @@ function renderDay(el) {
       e.target.closest('.editor').querySelector('[data-act="add"]').click();
     }
   };
+}
+
+function healthCard() {
+  return `
+    <div class="card health">
+      <div class="habit-head"><span class="name">Santé iPhone</span><span class="goal">pas · calories · salle</span></div>
+      <div class="row2">
+        <a class="btn secondary" href="${SHORTCUT_URL}">1. Lire Santé</a>
+        <button class="btn" data-act="paste">2. Coller</button>
+      </div>
+      ${importMsg ? `<p class="small import-msg">${esc(importMsg)}</p>` : ''}
+    </div>`;
+}
+
+async function pasteImport(el) {
+  try {
+    runImport(el, await navigator.clipboard.readText());
+  } catch {
+    // Lecture refusée : on propose de coller à la main.
+    importMsg = '';
+    renderDay(el);
+    el.querySelector('.health').insertAdjacentHTML('beforeend', `
+      <textarea rows="2" placeholder="Appuie longuement ici puis « Coller »"></textarea>
+      <button class="btn small" data-act="manual">Importer</button>`);
+  }
+}
+
+function runImport(el, text) {
+  const data = parse(text);
+  if (!data) {
+    importMsg = 'Rien à importer : lance d\'abord « 1. Lire Santé », puis reviens ici.';
+  } else {
+    const changes = apply(data);
+    const when = data.date === dateKey() ? '' : ` (pour le ${data.date})`;
+    importMsg = changes.length ? `Importé${when} : ${changes.join(', ')}` :
+      'Données reçues, mais aucune habitude n\'est reliée à ces valeurs.';
+  }
+  renderDay(el);
 }
 
 function setValue(h, v) {
@@ -195,6 +242,13 @@ function renderForm(el, h) {
         </div>
       </fieldset>
 
+      <label>Remplissage automatique (iPhone)
+        <select name="source">
+          <option value="">Aucun, je saisis à la main</option>
+          ${Object.entries(SOURCES).map(([k, l]) => `<option value="${k}" ${h.source === k ? 'selected' : ''}>${l}</option>`).join('')}
+        </select>
+      </label>
+
       <label class="switch">
         <input type="checkbox" name="limited" ${limited ? 'checked' : ''}>
         <span>Seulement sur une période</span>
@@ -234,6 +288,7 @@ function renderForm(el, h) {
       days: f.getAll('days').map(Number),
       start: f.get('limited') ? f.get('start') || null : null,
       end: f.get('limited') ? f.get('end') || null : null,
+      source: f.get('source') || null,
     };
 
     const problem =
