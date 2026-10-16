@@ -8,6 +8,7 @@ import { icon } from './icons.js';
 import { schedule } from './scheduler.js';
 import { taskBlocks, blockSegments, handleTodoClick, editTask } from './todo-view.js';
 import { gridHTML, bindGrid } from './grid-view.js';
+import { findConflicts, groupConflicts, suggestions } from './conflicts.js';
 
 let day = dateKey();
 
@@ -37,7 +38,10 @@ function renderDay(el) {
   const nowMin = day === dateKey() ? now.getHours() * 60 + now.getMinutes() : -1;
   const asList = getData().settings.planView === 'liste';
   const all = [...items, ...taskBlocks(day)].sort((a, b) => a.start - b.start);
-  const grid = asList ? null : gridHTML(all, { nowMin, segments: sched.segments });
+  const conflicts = findConflicts(all, p.days[day]?.okConflicts || []);
+  const groups = groupConflicts(conflicts).slice(0, 3);
+  const fixes = groups.map(g => suggestions(g, all));
+  const grid = asList ? null : gridHTML(all, { nowMin, segments: sched.segments, conflicts: new Set(conflicts.flatMap(c => [c.a, c.b])) });
 
   el.innerHTML = `
     ${weekStrip(p)}
@@ -56,6 +60,17 @@ function renderDay(el) {
     </p>
     ${overridden ? `<p class="small muted modified">${p.days[day]?.items ? 'Journée modifiée à la main' : 'Type de jour changé'} ·
       <button class="link" data-act="reset">Revenir au planning prévu</button></p>` : ''}
+
+    ${conflicts.length ? `
+      <div class="card banner warn conflicts">
+        <strong>${conflicts.length} chevauchement${conflicts.length > 1 ? 's' : ''}</strong>
+        ${groups.map((g, i) => `
+          <div class="conflict">
+            <p class="small"><b>${esc(g.flex.label)}</b> ${toHHMM(g.flex.start)}–${toHHMM(g.flex.end)} chevauche
+              ${g.others.map(o => `<b>${esc(o.label)}</b> ${toHHMM(o.start)}–${toHHMM(o.end)}`).join(' et ')}</p>
+            <div class="fixes">${fixes[i].map((f, j) => `<button class="fix ${f.accept ? 'keep' : ''}" data-fix="${i}:${j}">${esc(f.label)}</button>`).join('')}</div>
+          </div>`).join('')}
+      </div>` : ''}
 
     <div class="ess-head">
       <h2 class="section-title">Journée</h2>
@@ -87,6 +102,12 @@ function renderDay(el) {
 
   el.onclick = e => {
     if (handleTodoClick(e, day, () => renderDay(el))) return;
+    const fx = e.target.closest('[data-fix]');
+    if (fx) {
+      const [i, j] = fx.dataset.fix.split(':').map(Number);
+      applyFix(fixes[i][j]);
+      return renderDay(el);
+    }
     const v = e.target.closest('[data-view]');
     if (v) { update(d => { d.settings.planView = v.dataset.view; }); return renderDay(el); }
     if (e.target.closest('.grid')) return; // gestes gérés par la grille
@@ -108,6 +129,16 @@ function renderDay(el) {
     }
     renderDay(el);
   };
+}
+
+function applyFix(f) {
+  if (f.accept) setDay(d => { d.okConflicts = [...(d.okConflicts || []), ...f.accept]; });
+  else if (f.tomorrow) update(d => {
+    const t = d.tasks.find(x => x.id === f.it.taskId);
+    t.date = addDays(t.date, 1);
+    t.postponed = (t.postponed || 0) + 1;
+  });
+  else moveBrick(f.it, f.start, f.end);
 }
 
 // Déplacement / redimensionnement d'une brique (ce jour seulement).

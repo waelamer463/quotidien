@@ -11,7 +11,7 @@ const MIN_LEN = 10;    // durée minimale d'une brique
 
 // items : éléments du jour (avec start/end en minutes)
 // opts : { nowMin, segments, onTap(it), onChange(it, start, end), onPrayer(it) }
-export function gridHTML(items, { nowMin = -1, segments = [] } = {}) {
+export function gridHTML(items, { nowMin = -1, segments = [], conflicts = new Set() } = {}) {
   const bricks = items.filter(i => !i.prayer && i.kind !== 'sommeil' && i.end > i.start);
   const prayers = items.filter(i => i.prayer);
   const all = items.filter(i => i.end >= i.start);
@@ -30,7 +30,7 @@ export function gridHTML(items, { nowMin = -1, segments = [] } = {}) {
     const segs = segments.filter(s => it.eid != null && s.block === it.eid && s.kind === 'task');
     const color = it.color ? `--c:${it.color};` : '';
     return `
-      <div class="brick k-${it.kind} ${it.optional ? 'optional' : ''} ${it.done ? 'done' : ''} ${it.priority ? `p${it.priority}` : ''} ${movable ? 'movable' : ''} ${h < 40 ? 'tiny' : ''}"
+      <div class="brick k-${it.kind} ${it.optional ? 'optional' : ''} ${it.done ? 'done' : ''} ${it.priority ? `p${it.priority}` : ''} ${movable ? 'movable' : ''} ${h < 40 ? 'tiny' : ''} ${conflicts.has(it) ? 'conflict' : ''}"
         data-i="${idx}" style="${color}top:${y(it.start)}px;height:${h}px;left:calc(${col} * (100% / ${n}));width:calc(100% / ${n} - 4px)">
         <span class="b-time">${toHHMM(it.start)}–${toHHMM(it.end)}</span>
         <span class="b-label">${esc(it.label)}</span>

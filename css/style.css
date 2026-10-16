@@ -779,3 +779,17 @@ body.no-select { -webkit-user-select: none; user-select: none; }
 .g-prayer.deferred span { background: var(--surface-2); color: var(--muted); }
 .g-now { position: absolute; left: -6px; right: 0; height: 2px; background: var(--danger); z-index: 3; }
 .g-now::before { content: ''; position: absolute; left: -4px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--danger); }
+
+/* ---------- Chevauchements ---------- */
+.conflicts .conflict + .conflict { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.conflicts p { margin: 6px 0 8px; }
+.fixes { display: flex; flex-direction: column; gap: 6px; }
+.fix {
+  text-align: left; padding: 10px 12px; border: none; border-radius: var(--r-sm);
+  background: var(--accent-soft); color: var(--accent); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+}
+.fix.keep { background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1px var(--line); }
+.fix:active { transform: scale(.98); }
+.brick.conflict { box-shadow: inset 3px 0 0 var(--c), inset 0 0 0 2px var(--danger); }
+a.banner { color: inherit; text-decoration: none; }
+a.banner strong { margin-bottom: 2px; }

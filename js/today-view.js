@@ -8,7 +8,8 @@ import { buildDay, toHHMM } from './planning-model.js';
 import { PRAYER_STATES, dayLog, setLog, cyclePrayer, gymWeek, kcalState } from './essentials.js';
 import { SHORTCUT_URL, parse, apply } from './health-import.js';
 import { openSheet } from './sheet.js';
-import { todoSection, handleTodoClick, bindQuick } from './todo-view.js';
+import { todoSection, handleTodoClick, bindQuick, taskBlocks } from './todo-view.js';
+import { findConflicts } from './conflicts.js';
 
 let day = dateKey();
 let importMsg = '';
@@ -32,6 +33,7 @@ export function render(el) {
     </div>
 
     ${day === today ? nowCard(built.items) : ''}
+    ${conflictNote(built.items)}
 
     <div class="ess-head">
       <h2 class="section-title">Essentiels</h2>
@@ -102,6 +104,13 @@ export function render(el) {
     render(el);
   };
   return day === today ? 'Aujourd\'hui' : dayLabel(day);
+}
+
+function conflictNote(items) {
+  const n = findConflicts([...items, ...taskBlocks(day)], getData().planning.days[day]?.okConflicts || []).length;
+  return n ? `<a class="card banner warn row-link" href="#planning/jour/${day}">
+    <span class="grow"><strong>${n} chevauchement${n > 1 ? 's' : ''} dans ton planning</strong>
+      <span class="small muted">Touche pour voir les solutions proposées.</span></span>${icon('right', 'chev')}</a>` : '';
 }
 
 function metric(key, label, value, goal, state, pct, unit) {
