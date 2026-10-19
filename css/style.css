@@ -851,3 +851,9 @@ a.banner strong { margin-bottom: 2px; }
 .share-legend td:not(:first-child) { text-align: right; font-weight: 700; }
 .share-legend td:first-child { display: flex; align-items: center; gap: 8px; }
 .sw { display: inline-block; width: 12px; height: 12px; }
+
+/* ---------- Sauvegarde ---------- */
+.backup-warn { color: var(--danger); font-weight: 600; margin: 0; }
+.file-btn { cursor: pointer; }
+.file-btn input { display: none; }
+.backup-msg { margin: 10px 0 0; }

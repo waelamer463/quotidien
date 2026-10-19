@@ -12,6 +12,8 @@ export const PRAYER_NAMES = { fajr: 'Fajr', dhuhr: 'Dhuhr', asr: 'Asr', maghrib:
 export const METHODS = {
   UOIF: { fajr: 12, isha: 12 },
   MWL: { fajr: 18, isha: 17 }, // Ligue islamique mondiale
+  ISNA: { fajr: 15, isha: 15 }, // Amérique du Nord
+  Egypte: { fajr: 19.5, isha: 17.5 },
 };
 
 function sunPosition(jd) {

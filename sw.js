@@ -1,7 +1,7 @@
 // Stratégie "réseau d'abord" : en ligne, tu reçois toujours la dernière version ;
 // hors ligne, l'app se charge depuis le cache.
 
-const CACHE = 'quotidien-v16';
+const CACHE = 'quotidien-v17';
 const FILES = [
   './',
   'index.html',
@@ -25,6 +25,7 @@ const FILES = [
   'js/conflicts.js',
   'js/insights.js',
   'js/stats-view.js',
+  'js/backup.js',
   'js/icons.js',
   'js/sky.js',
   'fonts/manrope-latin.woff2',

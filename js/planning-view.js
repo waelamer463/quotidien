@@ -1,11 +1,12 @@
 import { getData, update } from './storage.js';
 import { dateKey, addDays, parseKey, dayLabel, esc } from './util.js';
-import { PRAYERS, PRAYER_NAMES, prayerTimes } from './prayers.js';
+import { PRAYERS, PRAYER_NAMES, prayerTimes, METHODS } from './prayers.js';
 import { DAY_TYPES, buildDay, baseItems, toStored, courseSlots, dayType, restDaysInMonth, toHHMM } from './planning-model.js';
 import { openSheet, activityFields, readActivity } from './sheet.js';
 import * as edit from './planning-edit.js';
 import { icon } from './icons.js';
 import { schedule } from './scheduler.js';
+import { exportData, importFile, daysSinceExport } from './backup.js';
 import { taskBlocks, blockSegments, handleTodoClick, editTask } from './todo-view.js';
 import { gridHTML, bindGrid } from './grid-view.js';
 import { findConflicts, groupConflicts, suggestions } from './conflicts.js';
@@ -269,7 +270,8 @@ function renderSettings(el) {
   el.innerHTML = `
     <a class="back" href="#planning">${icon('left')}Retour</a>
 
-    <div class="section-title">Prières · ${esc(p.place.city)} (${p.place.method})</div>
+    <div class="ess-head"><h2 class="section-title">Prières · ${esc(p.place.city)} (${p.place.method})</h2>
+      <button class="link small" data-place>Lieu et méthode</button></div>
     <div class="card">
       <p class="small muted" style="margin-bottom:8px">Décale chaque prière pour coller aux horaires de ta mosquée.</p>
       ${PRAYERS.map(n => {
@@ -321,9 +323,30 @@ function renderSettings(el) {
     <a class="card row-link" href="#planning/modele/bibliotheque"><span><span class="name">Journée Bibliothèque</span>
       <span class="muted small">Horaires de la bibliothèque, repas, trajets…</span></span>${icon('right', 'chev')}</a>
     <a class="card row-link" href="#planning/modele/repos"><span><span class="name">Journée Repos</span>
-      <span class="muted small">Ce qui est prévu les jours off</span></span>${icon('right', 'chev')}</a>`;
+      <span class="muted small">Ce qui est prévu les jours off</span></span>${icon('right', 'chev')}</a>
 
-  el.onclick = e => {
+    <div class="section-title">Mes données</div>
+    <div class="card">
+      ${(() => {
+        const n = daysSinceExport();
+        return `<p class="small ${n === null || n > 7 ? 'backup-warn' : 'muted'}">${n === null ? 'Aucune sauvegarde pour l\'instant.'
+          : n === 0 ? 'Dernière sauvegarde aujourd\'hui.' : `Dernière sauvegarde il y a ${n} jour${n > 1 ? 's' : ''}.`}
+          Tes données ne sont que sur ce téléphone : exporte-les régulièrement.</p>`;
+      })()}
+      <div class="row2" style="margin-top:12px">
+        <button class="btn small" data-export>Exporter</button>
+        <label class="btn small secondary file-btn">Importer<input type="file" accept="application/json,.json" data-import hidden></label>
+      </div>
+      <p class="small muted backup-msg" hidden></p>
+    </div>`;
+
+  el.onclick = async e => {
+    if (e.target.closest('[data-place]')) return editPlace(el);
+    if (e.target.closest('[data-export]')) {
+      const msg = await exportData();
+      renderSettings(el);
+      return showMsg(el, msg);
+    }
     const b = e.target.closest('[data-off],[data-key]');
     if (!b) return;
     const d = Number(b.dataset.d);
@@ -338,10 +361,58 @@ function renderSettings(el) {
     });
     renderSettings(el);
   };
-  el.onchange = e => {
+  el.onchange = async e => {
+    if (e.target.matches('[data-import]') && e.target.files[0]) {
+      const err = await importFile(e.target.files[0]);
+      if (err) showMsg(el, err);
+      e.target.value = '';
+      return;
+    }
     if (e.target.dataset.time && e.target.value) {
       update(d => { d.planning[e.target.dataset.time] = e.target.value; });
     }
   };
-  return 'Réglages du planning';
+  return 'Réglages';
+}
+
+function showMsg(el, msg) {
+  const m = el.querySelector('.backup-msg');
+  if (m) { m.textContent = msg; m.hidden = false; }
+}
+
+function editPlace(el) {
+  const pl = getData().planning.place;
+  openSheet({
+    title: 'Lieu et méthode',
+    body: `
+      <label>Ville <input name="city" maxlength="40" value="${esc(pl.city)}"></label>
+      <div class="grid2">
+        <label>Latitude <input name="lat" inputmode="decimal" value="${pl.lat}"></label>
+        <label>Longitude <input name="lng" inputmode="decimal" value="${pl.lng}"></label>
+      </div>
+      <button type="button" class="btn small secondary" data-geo>Utiliser ma position</button>
+      <label>Méthode de calcul
+        <select name="method">${Object.entries(METHODS).map(([k, m]) =>
+          `<option value="${k}" ${pl.method === k ? 'selected' : ''}>${k} (Fajr ${m.fajr}°, Isha ${m.isha}°)</option>`).join('')}</select>
+      </label>
+      <p class="small muted">Tes décalages manuels (± min) restent appliqués.</p>`,
+    onSave: f => {
+      const lat = parseFloat(String(f.get('lat')).replace(',', '.'));
+      const lng = parseFloat(String(f.get('lng')).replace(',', '.'));
+      if (isNaN(lat) || isNaN(lng) || Math.abs(lat) > 66 || Math.abs(lng) > 180) return 'Coordonnées invalides.';
+      update(d => { d.planning.place = { city: f.get('city').trim() || 'Ma ville', lat, lng, method: f.get('method') }; });
+      renderSettings(el);
+    },
+  });
+  const sheet = document.querySelector('.sheet');
+  sheet.querySelector('[data-geo]').addEventListener('click', ev => {
+    const btn = ev.currentTarget;
+    if (!navigator.geolocation) { btn.textContent = 'Position indisponible'; return; }
+    btn.textContent = 'Recherche…';
+    navigator.geolocation.getCurrentPosition(pos => {
+      sheet.querySelector('[name=lat]').value = pos.coords.latitude.toFixed(4);
+      sheet.querySelector('[name=lng]').value = pos.coords.longitude.toFixed(4);
+      btn.textContent = 'Position trouvée';
+    }, () => { btn.textContent = 'Position refusée'; }, { timeout: 10000 });
+  });
 }
