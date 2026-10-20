@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#070B16">
+<title>Ordinateur · prototypes</title>
+<style>
+@font-face { font-family: 'Geist'; src: url('fonts/geist-latin.woff2') format('woff2'); font-weight: 100 900; }
+@font-face { font-family: 'Geist Mono'; src: url('fonts/geist-mono-latin.woff2') format('woff2'); font-weight: 100 900; }
+:root {
+  --bg: #070B16; --solid: #0F1729; --surface: rgba(148,178,230,.07); --surface-2: rgba(148,178,230,.11); --edge: rgba(180,210,255,.10);
+  --text: #E9F1FF; --muted: #8394B3; --accent: #4FE3F0; --warm: #FFB86B; --hot: #FF7A90; --violet: #9aa6ff;
+  --sans: 'Geist', -apple-system, sans-serif; --mono: 'Geist Mono', ui-monospace, monospace;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: radial-gradient(120% 50% at 50% -10%, #12224a 0%, var(--bg) 60%) fixed, var(--bg); color: var(--text);
+  font: 15px/1.45 var(--sans); padding: max(18px, env(safe-area-inset-top)) 16px 70px; }
+main { max-width: 1100px; margin: 0 auto; }
+h1 { font-size: 28px; letter-spacing: -.02em; margin: 6px 0 4px; }
+h2 { font-size: 21px; letter-spacing: -.01em; margin: 34px 0 4px; }
+.lead, .sub { color: var(--muted); margin: 0 0 14px; max-width: 64ch; }
+.seg { display: inline-flex; gap: 4px; padding: 4px; background: var(--surface-2); border-radius: 14px; margin: 4px 0 12px; }
+.seg button { font: 600 14px var(--sans); color: var(--muted); background: none; border: 0; border-radius: 10px; padding: 8px 14px; cursor: pointer; }
+.seg button.on { background: var(--solid); color: var(--text); box-shadow: 0 1px 6px rgba(0,0,0,.4); }
+.hint { font-size: 13px; color: var(--muted); margin: 8px 2px 0; }
+.mono { font-family: var(--mono); }
+
+/* ---------- fenêtre mac mise à l'échelle ---------- */
+.scaler { position: relative; width: 100%; overflow: hidden; border-radius: 14px; }
+.win { position: absolute; left: 0; top: 0; width: 1280px; height: 800px; transform-origin: 0 0; border-radius: 14px; overflow: hidden;
+  background: linear-gradient(180deg, #0b1224, #070b16); border: 1px solid var(--edge); display: flex; flex-direction: column; }
+.titlebar { height: 38px; flex: none; display: flex; align-items: center; gap: 8px; padding: 0 14px; border-bottom: 1px solid var(--edge); }
+.titlebar i { width: 12px; height: 12px; border-radius: 50%; background: #ff5f57; }
+.titlebar i:nth-child(2) { background: #febc2e; } .titlebar i:nth-child(3) { background: #28c840; }
+.titlebar span { margin-left: 14px; font-size: 13px; color: var(--muted); }
+.titlebar kbd { margin-left: auto; font: 500 11px var(--mono); color: var(--muted); border: 1px solid var(--edge); border-radius: 6px; padding: 2px 7px; }
+.body { flex: 1; display: grid; min-height: 0; }
+.layoutA .body { grid-template-columns: 210px 1fr 340px; }
+.layoutB .body { grid-template-columns: 210px 1fr 300px; }
+
+.side { border-right: 1px solid var(--edge); padding: 18px 12px; display: flex; flex-direction: column; gap: 4px; background: rgba(148,178,230,.03); }
+.side .brand { font-weight: 700; font-size: 17px; padding: 0 10px 14px; }
+.side a { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 10px; color: var(--muted); font-size: 14px; text-decoration: none; }
+.side a.on { background: var(--surface-2); color: var(--text); }
+.side a b { margin-left: auto; font: 500 11px var(--mono); color: var(--muted); }
+.side a svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.side .pal { margin-top: auto; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 6px 4px; }
+.side .pal .say { font-size: 12.5px; text-align: center; background: var(--surface-2); border-radius: 12px; padding: 8px 10px; }
+
+.col { padding: 20px 22px; overflow: hidden; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.col + .col { border-left: 1px solid var(--edge); }
+.head { display: flex; align-items: baseline; justify-content: space-between; }
+.head h3 { margin: 0; font-size: 22px; letter-spacing: -.01em; }
+.head span { color: var(--muted); font-size: 13px; }
+.card { background: var(--surface); border: 1px solid var(--edge); border-radius: 18px; padding: 14px 16px; }
+.card h4 { margin: 0 0 10px; font-size: 14px; display: flex; justify-content: space-between; }
+.card h4 span { color: var(--muted); font-weight: 500; font-size: 12px; }
+
+/* planning du jour */
+.day { position: relative; display: grid; grid-template-columns: 46px 1fr; flex: 1; min-height: 0; }
+.hours { position: relative; }
+.hours span { position: absolute; left: 0; font: 500 11px var(--mono); color: var(--muted); transform: translateY(-50%); }
+.lane { position: relative; border-left: 1px solid var(--edge); }
+.lane .hl { position: absolute; left: 0; right: 0; border-top: 1px dashed rgba(180,210,255,.06); }
+.blk { position: absolute; left: 8px; right: 8px; border-radius: 12px; padding: 7px 11px; font-size: 13px; overflow: hidden; border: 1px solid var(--edge); background: var(--surface-2); }
+.blk b { display: block; font-weight: 600; }
+.blk small { color: var(--muted); font-family: var(--mono); font-size: 11px; }
+.blk.travail { background: rgba(79,227,240,.10); border-color: rgba(79,227,240,.28); }
+.blk.repas { background: rgba(255,184,107,.10); border-color: rgba(255,184,107,.25); }
+.blk.trajet { background: rgba(148,178,230,.06); }
+.blk .seg2 { margin-top: 6px; display: flex; flex-direction: column; gap: 4px; }
+.blk .seg2 span { background: rgba(79,227,240,.16); border-radius: 7px; padding: 3px 8px; font-size: 12px; }
+.blk .seg2 span.rev::before { content: 'révision · '; color: var(--accent); font-weight: 600; }
+.pr { position: absolute; right: 14px; transform: translateY(-50%); font: 600 10.5px var(--mono); color: var(--violet); background: #121a35; border: 1px solid rgba(154,166,255,.35); border-radius: 999px; padding: 1px 8px; z-index: 2; }
+.now { position: absolute; left: -4px; right: 0; height: 2px; background: var(--hot); z-index: 3; box-shadow: 0 0 8px var(--hot); }
+.now::before { content: ''; position: absolute; left: -4px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--hot); }
+
+/* to-do */
+.todo { display: flex; flex-direction: column; gap: 6px; }
+.todo div { display: flex; align-items: center; gap: 10px; font-size: 13.5px; padding: 7px 4px; border-bottom: 1px solid var(--edge); }
+.todo div:last-child { border: 0; }
+.todo i { width: 18px; height: 18px; border-radius: 6px; border: 1.6px solid var(--muted); flex: none; }
+.todo .done i { background: var(--accent); border-color: var(--accent); }
+.todo .done span { color: var(--muted); text-decoration: line-through; }
+.todo small { margin-left: auto; color: var(--muted); font: 500 11px var(--mono); }
+.quick { display: flex; align-items: center; gap: 8px; background: var(--surface-2); border-radius: 12px; padding: 9px 12px; font-size: 13px; color: var(--muted); }
+.quick kbd { margin-left: auto; font: 500 11px var(--mono); border: 1px solid var(--edge); border-radius: 6px; padding: 1px 6px; }
+
+/* essentiels */
+.prayers { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; text-align: center; font-size: 11.5px; color: var(--muted); }
+.prayers i { display: block; width: 28px; height: 28px; margin: 0 auto 4px; border-radius: 50%; border: 1.6px solid var(--edge); }
+.prayers .ok i { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 10px rgba(79,227,240,.5); }
+.rings { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; text-align: center; font-size: 11.5px; color: var(--muted); margin-top: 12px; }
+.rings svg { width: 46px; height: 46px; transform: rotate(-90deg); display: block; margin: 0 auto 4px; }
+.rings circle { fill: none; stroke-width: 5; }
+.rings .t { stroke: var(--surface-2); } .rings .v { stroke: var(--accent); stroke-linecap: round; }
+.examline { display: flex; align-items: center; gap: 12px; }
+.examline .jx { font: 700 26px var(--mono); color: var(--accent); }
+.bar { height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; margin-top: 6px; }
+.bar i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+
+/* semaine (layout B) */
+.week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; flex: 1; }
+.wd { display: flex; flex-direction: column; gap: 5px; }
+.wd > b { font-size: 12px; color: var(--muted); font-weight: 600; text-align: center; padding-bottom: 4px; }
+.wd > b.today { color: var(--accent); }
+.wd span { border-radius: 8px; padding: 5px 7px; font-size: 11px; background: var(--surface-2); }
+.wd span.c { background: rgba(154,166,255,.16); } .wd span.t { background: rgba(79,227,240,.13); } .wd span.r { background: rgba(255,184,107,.12); }
+.rail .nowbig { font-size: 20px; font-weight: 700; margin: 2px 0; }
+.chrono { display: flex; align-items: center; gap: 12px; }
+.chrono b { font: 600 24px var(--mono); }
+.chrono button { margin-left: auto; width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--accent); color: #04161A; font-size: 13px; }
+
+/* ---------- orbe ---------- */
+.orb { overflow: visible; }
+.orb .ball { fill: url(#orbFill); stroke: rgba(180,210,255,.18); stroke-width: 1; }
+.orb .shine { fill: url(#orbShine); }
+.orb .arc { fill: none; stroke: var(--mood, var(--accent)); stroke-width: 3; stroke-linecap: round; filter: drop-shadow(0 0 4px var(--mood, var(--accent))); }
+.orb .face path, .orb .face circle { fill: none; stroke: var(--text); stroke-width: 3.4; stroke-linecap: round; stroke-linejoin: round; }
+.orb .face polygon { fill: var(--accent); stroke: var(--accent); }
+.orb.float { animation: float 5s ease-in-out infinite; }
+.orb.tiny .arc { stroke-width: 6; filter: none; } .orb.tiny .face path, .orb.tiny .face circle { stroke-width: 7; }
+@keyframes float { 50% { transform: translateY(-4px); } }
+
+/* ---------- bureau (widget, île, barre des menus) ---------- */
+.desk { position: relative; width: 1280px; height: 800px; transform-origin: 0 0; position: absolute; left: 0; top: 0; overflow: hidden; border-radius: 14px;
+  background: radial-gradient(60% 70% at 70% 30%, #3a2a6e 0%, transparent 60%), radial-gradient(60% 60% at 20% 80%, #11406a 0%, transparent 60%), linear-gradient(160deg, #141c38, #0b0f20); }
+.menubar { position: absolute; top: 0; left: 0; right: 0; height: 30px; background: rgba(10,12,24,.55); backdrop-filter: blur(20px); display: flex; align-items: center; padding: 0 16px; gap: 18px; font-size: 13px; z-index: 1; }
+.menubar b { font-weight: 700; } .menubar span { color: rgba(233,241,255,.8); }
+.menubar .right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+.menubar .tray { display: flex; align-items: center; gap: 6px; padding: 2px 8px; border-radius: 6px; background: rgba(255,255,255,.08); font: 600 12px var(--mono); }
+.otherwin { position: absolute; left: 90px; top: 90px; width: 640px; height: 420px; border-radius: 12px; background: rgba(240,244,250,.92); box-shadow: 0 30px 80px rgba(0,0,0,.5); color: #222; padding: 0; overflow: hidden; }
+.otherwin .tb { height: 32px; background: #e4e8ef; display: flex; align-items: center; gap: 7px; padding: 0 12px; }
+.otherwin .tb i { width: 11px; height: 11px; border-radius: 50%; background: #ff5f57; } .otherwin .tb i:nth-child(2) { background: #febc2e; } .otherwin .tb i:nth-child(3) { background: #28c840; }
+.otherwin p { margin: 18px 22px; color: #555; font-size: 14px; line-height: 2.1; }
+.otherwin p span { display: block; height: 10px; background: #d5dae3; border-radius: 5px; margin: 14px 0; }
+
+/* île dynamique */
+.island { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); z-index: 5; background: #000; color: var(--text); border-radius: 22px;
+  width: 190px; height: 36px; overflow: hidden; cursor: pointer; box-shadow: 0 8px 30px rgba(0,0,0,.45);
+  transition: width .5s cubic-bezier(.3,1.35,.5,1), height .5s cubic-bezier(.3,1.35,.5,1), border-radius .5s; }
+.island .rest { position: absolute; inset: 0; display: flex; align-items: center; gap: 8px; padding: 0 14px 0 8px; font: 600 13px var(--mono); transition: opacity .25s; }
+.island .rest .t { margin-left: auto; color: var(--accent); }
+.island .ev, .island .ext { position: absolute; inset: 0; opacity: 0; transition: opacity .25s .15s; pointer-events: none; padding: 14px 18px; display: flex; align-items: center; gap: 14px; }
+.island.event { width: 400px; height: 76px; border-radius: 30px; }
+.island.event .rest { opacity: 0; } .island.event .ev { opacity: 1; }
+.island.open { width: 440px; height: 196px; border-radius: 34px; }
+.island.open .rest { opacity: 0; } .island.open .ext { opacity: 1; pointer-events: auto; }
+.ev b { display: block; font-size: 16px; } .ev small { color: var(--muted); font-size: 13px; }
+.ext { flex-direction: column; align-items: stretch !important; gap: 10px !important; }
+.ext .top { display: flex; align-items: center; gap: 12px; }
+.ext .top b { font-size: 15px; display: block; } .ext .top small { color: var(--muted); font-size: 12.5px; }
+.ext .clock { margin-left: auto; font: 600 26px var(--mono); color: var(--accent); }
+.ext .acts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.ext .acts button { border: 0; border-radius: 14px; padding: 10px 6px; font: 600 12.5px var(--sans); background: rgba(255,255,255,.1); color: var(--text); cursor: pointer; }
+.ext .acts button.main { background: var(--accent); color: #04161A; }
+.ext .nextp { font-size: 12.5px; color: var(--muted); display: flex; justify-content: space-between; }
+
+/* widget flottant */
+.widget { position: absolute; right: 28px; bottom: 28px; width: 300px; border-radius: 24px; padding: 16px 16px 14px; z-index: 3;
+  background: rgba(14,22,44,.62); backdrop-filter: blur(24px) saturate(1.4); border: 1px solid rgba(180,210,255,.16); box-shadow: 0 24px 60px rgba(0,0,0,.45); }
+.widget .wtop { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.widget .wtop .pin { margin-left: auto; font-size: 11px; color: var(--muted); border: 1px solid var(--edge); border-radius: 8px; padding: 3px 8px; }
+.widget .wtop .pin.on { color: var(--accent); border-color: rgba(79,227,240,.4); }
+.widget .row { display: flex; justify-content: space-between; align-items: baseline; padding: 7px 0; border-top: 1px solid rgba(180,210,255,.08); font-size: 13px; }
+.widget .row span { color: var(--muted); } .widget .row b { font-weight: 600; text-align: right; }
+.widget .row b.big { font: 600 20px var(--mono); color: var(--accent); }
+
+/* vue rapide (raccourci global) */
+.quickview { position: absolute; left: 50%; top: 210px; transform: translateX(-50%) scale(.96); width: 620px; border-radius: 20px; z-index: 6; opacity: 0; pointer-events: none;
+  background: rgba(14,22,44,.86); backdrop-filter: blur(30px); border: 1px solid rgba(180,210,255,.18); box-shadow: 0 40px 100px rgba(0,0,0,.6); transition: opacity .2s, transform .2s; }
+.quickview.on { opacity: 1; transform: translateX(-50%) scale(1); pointer-events: auto; }
+.quickview .in { display: flex; align-items: center; gap: 12px; padding: 16px 18px; font-size: 18px; border-bottom: 1px solid var(--edge); }
+.quickview .in .caret { width: 2px; height: 22px; background: var(--accent); animation: caret 1s steps(1) infinite; }
+@keyframes caret { 50% { opacity: 0; } }
+.quickview .chips { display: flex; gap: 6px; padding: 10px 18px; }
+.quickview .chips span { font-size: 12px; background: var(--surface-2); border-radius: 8px; padding: 3px 9px; }
+.quickview .habits { display: flex; gap: 8px; padding: 6px 18px 16px; font-size: 13px; color: var(--muted); align-items: center; }
+.quickview .habits i { display: inline-flex; align-items: center; gap: 6px; font-style: normal; padding: 6px 10px; border-radius: 10px; background: var(--surface-2); color: var(--text); }
+
+.controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 0; }
+.controls button { font: 600 13px var(--sans); color: var(--text); background: var(--surface-2); border: 1px solid var(--edge); border-radius: 12px; padding: 9px 12px; cursor: pointer; }
+.controls button.alt { color: var(--accent); }
+
+/* ---------- iPhone ---------- */
+.phones { display: grid; grid-template-columns: repeat(3, minmax(250px, 1fr)); gap: 14px; overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x mandatory; }
+.opt { scroll-snap-align: start; background: var(--surface); border: 1px solid var(--edge); border-radius: 24px; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.opt h3 { margin: 0; font-size: 16px; } .opt p { margin: 0; font-size: 13px; color: var(--muted); }
+.opt .tag { align-self: flex-start; font-size: 11.5px; font-weight: 600; border-radius: 8px; padding: 3px 8px; background: rgba(79,227,240,.14); color: var(--accent); }
+.opt .tag.no { background: rgba(255,122,144,.14); color: var(--hot); } .opt .tag.mid { background: rgba(255,184,107,.14); color: var(--warm); }
+.phone { width: 230px; height: 470px; align-self: center; border-radius: 40px; padding: 10px; background: #1b1f2a; box-shadow: inset 0 0 0 2px #2c3242; position: relative; }
+.screen { position: relative; width: 100%; height: 100%; border-radius: 31px; overflow: hidden; padding: 44px 14px 14px;
+  background: radial-gradient(80% 60% at 70% 20%, #3b2d74, transparent 60%), radial-gradient(70% 60% at 20% 90%, #0f4d70, transparent 60%), #10142a; }
+.screen .notch { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 78px; height: 22px; border-radius: 12px; background: #000; z-index: 2; transition: width .5s cubic-bezier(.3,1.35,.5,1), height .5s; display: flex; align-items: center; justify-content: space-between; padding: 0 6px; overflow: hidden; }
+.screen .notch.live { width: 150px; }
+.screen .notch .tm { font: 600 10px var(--mono); color: var(--accent); }
+.screen .clock { position: absolute; top: 14px; left: 22px; font-size: 11px; font-weight: 600; }
+.wmed { border-radius: 20px; padding: 12px; background: rgba(14,22,44,.7); backdrop-filter: blur(14px); border: 1px solid rgba(180,210,255,.14); display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: center; }
+.wmed .info { display: flex; flex-direction: column; gap: 3px; font-size: 11px; }
+.wmed .info b { font-size: 13px; } .wmed .info span { color: var(--muted); }
+.wmed .info .acc { color: var(--accent); font-family: var(--mono); }
+.wname { font-size: 10px; text-align: center; color: rgba(233,241,255,.8); margin: 4px 0 10px; }
+.icons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px 10px; }
+.icons i { aspect-ratio: 1; border-radius: 12px; background: rgba(255,255,255,.12); }
+.icons i.app { background: linear-gradient(160deg, #13234a, #070b16); box-shadow: inset 0 0 0 1px rgba(79,227,240,.35); display: grid; place-items: center; }
+.lock { text-align: center; margin-top: 6px; }
+.lock .big { font-size: 46px; font-weight: 300; letter-spacing: -.02em; line-height: 1; }
+.lock .date { font-size: 12px; color: rgba(233,241,255,.8); margin-bottom: 18px; }
+.live-act { border-radius: 20px; padding: 12px; background: rgba(10,12,24,.75); display: flex; align-items: center; gap: 10px; text-align: left; font-size: 11px; }
+.live-act b { display: block; font-size: 12px; white-space: nowrap; } .live-act span { color: var(--muted); }
+.live-act .tm { margin-left: auto; font: 600 14px var(--mono); color: var(--accent); }
+.notes { margin-top: 26px; color: var(--muted); font-size: 13.5px; max-width: 70ch; }
+.notes b { color: var(--text); }
+@media (max-width: 700px) { .phones { grid-template-columns: repeat(3, 82%); } }
+</style>
+</head>
+<body>
+<main>
+  <h1>L'app ordinateur et l'iPhone</h1>
+  <p class="lead">Trois maquettes pour t'aider à choisir. Sur iPhone, mets-toi à l'horizontale pour mieux voir les fenêtres, ou ouvre cette page sur ton Mac.</p>
+
+  <h2>1. La mise en page de l'app (mode classique)</h2>
+  <p class="sub">Touche A ou B pour comparer.</p>
+  <div class="seg" id="segLayout"><button class="on" data-l="A">A · 3 colonnes</button><button data-l="B">B · 2 panneaux</button></div>
+  <div class="scaler" data-ratio="0.625"><div class="win layoutA" id="win"></div></div>
+  <p class="hint" id="layoutHint"></p>
+
+  <h2>2. Sur ton bureau : widget, vue rapide et dynamic island</h2>
+  <p class="sub">La pastille noire en haut, c'est la dynamic island. Touche-la pour l'ouvrir, ou déclenche un événement avec les boutons. Le widget en verre (en bas à droite) reste toujours visible.</p>
+  <div class="scaler" data-ratio="0.625"><div class="desk" id="desk"></div></div>
+  <div class="controls">
+    <button data-ev="bloc">Début de bloc</button>
+    <button data-ev="priere">Prière qui arrive</button>
+    <button data-ev="pause">Rappel de pause</button>
+    <button data-ev="habitude">Habitude à cocher</button>
+    <button class="alt" data-ev="open">Ouvrir l'île</button>
+    <button class="alt" data-ev="quick">⌥ Espace · vue rapide</button>
+  </div>
+
+  <h2>3. Côté iPhone : widget et Dynamic Island</h2>
+  <p class="sub">Une app web ne peut pas avoir de widget ni utiliser la Dynamic Island. Voici les 3 possibilités.</p>
+  <div class="phones" id="phones"></div>
+
+  <p class="notes">Pour les options 1 et 2, rien ne change pour toi dans l'app iPhone : la mascotte vit dans l'app. L'option 3 demande d'installer Xcode et de recréer une app iPhone en Swift. Avec un compte Apple gratuit, l'app <b>s'arrête au bout de 7 jours</b> et doit être réinstallée depuis le Mac. Pour éviter ça, il faut le programme développeur (99 €/an).</p>
+</main>
+
+<svg width="0" height="0" style="position:absolute"><defs>
+  <radialGradient id="orbFill" cx="38%" cy="30%" r="75%"><stop offset="0" stop-color="#2a4a86"/><stop offset=".6" stop-color="#13234a"/><stop offset="1" stop-color="#0a1328"/></radialGradient>
+  <radialGradient id="orbShine" cx="35%" cy="25%" r="35%"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+</defs></svg>
+
+<script>
+/* ---------- mascotte Orbe ---------- */
+const FACE = {
+  neutral: ['<path d="M48 51v9M72 51v9"/>', '<path d="M55 73h10"/>'],
+  joy: ['<path d="M43 59l5-6 5 6M67 59l5-6 5 6"/>', '<path d="M55 73h10"/>'],
+  rappel: ['<path d="M48 51v9M72 51v9"/>', '<circle cx="60" cy="74" r="4"/>'],
+  stress: ['<path d="M43 50l9 5-9 5M77 50l-9 5 9 5"/>', '<path d="M53 76h14"/>'],
+};
+const MOOD = { neutral: 'var(--accent)', joy: 'var(--accent)', rappel: 'var(--warm)', stress: 'var(--hot)' };
+const orb = (size, face = 'neutral', cls = '') => `<svg class="orb ${cls} ${size < 34 ? 'tiny' : ''}" style="--mood:${MOOD[face]}" width="${size}" height="${size}" viewBox="0 0 120 120">
+  <path class="arc" d="M14 34q-14 26 0 52"/><path class="arc" d="M106 34q14 26 0 52"/>
+  <circle class="ball" cx="60" cy="60" r="40"/><circle class="shine" cx="60" cy="60" r="40"/>
+  <g class="face">${FACE[face][0]}${FACE[face][1]}</g></svg>`;
+
+const ic = d => `<svg viewBox="0 0 24 24">${d}</svg>`;
+const NAV = [
+  ['Aujourd\'hui', ic('<circle cx="12" cy="12" r="8"/><path d="M8.5 12l2.5 2.5 4.5-5"/>'), '⌘1'],
+  ['Planning', ic('<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/>'), '⌘2'],
+  ['Examens', ic('<path d="M3 9l9-4 9 4-9 4z"/><path d="M7 11v4c3 2 7 2 10 0v-4"/>'), '⌘3'],
+  ['Stats', ic('<path d="M5 20V11M12 20V5M19 20v-7"/>'), '⌘4'],
+  ['Réglages', ic('<circle cx="12" cy="12" r="3"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>'), '⌘,'],
+];
+const side = on => `<aside class="side"><div class="brand">Quotidien</div>
+  ${NAV.map(([l, i, k], n) => `<a class="${n === on ? 'on' : ''}">${i}${l}<b>${k}</b></a>`).join('')}
+  <div class="pal">${orb(64, 'joy', 'float')}<div class="say">Bloc du matin terminé, bien joué !</div></div></aside>`;
+
+/* planning du jour : 6h → 23h sur 680px */
+const H0 = 6, PX = 40;
+const y = hm => { const [h, m] = hm.split(':').map(Number); return (h + m / 60 - H0) * PX; };
+const blocks = [
+  ['06:25', '07:00', 'Réveil · surérogatoires', ''], ['07:15', '08:00', 'Petit-déjeuner', 'repas'], ['09:20', '10:00', 'Trajet', 'trajet'],
+  ['10:00', '13:00', 'Bibliothèque', 'travail', ['Suites · Fiche résumé', 'Exos Algèbre TD3']],
+  ['13:00', '14:30', 'Déjeuner', 'repas'], ['14:30', '20:00', 'Bibliothèque', 'travail', ['Limites · Exercices types', 'Projet Prog. impérative', 'Démos de mémoire']],
+  ['20:00', '20:40', 'Trajet retour', 'trajet'], ['21:00', '21:45', 'Dîner', 'repas'],
+];
+const prayers = [['07:02', 'Fajr'], ['13:37', 'Dhuhr'], ['16:22', 'Asr'], ['18:50', 'Maghrib'], ['20:21', 'Isha']];
+const dayGrid = () => `<div class="day">
+  <div class="hours">${Array.from({ length: 18 }, (_, i) => `<span style="top:${i * PX}px">${String(H0 + i).padStart(2, '0')}:00</span>`).join('')}</div>
+  <div class="lane">${Array.from({ length: 18 }, (_, i) => `<i class="hl" style="top:${i * PX}px"></i>`).join('')}
+    ${blocks.map(([a, b, l, k, segs]) => `<div class="blk ${k}" style="top:${y(a)}px;height:${y(b) - y(a) - 3}px"><b>${l}</b><small>${a}–${b}</small>
+      ${segs ? `<div class="seg2">${segs.map((s, i) => `<span class="${i === 0 && s.includes('·') ? 'rev' : ''}">${s}</span>`).join('')}</div>` : ''}</div>`).join('')}
+    ${prayers.map(([t, n]) => `<span class="pr" style="top:${y(t)}px">${n} ${t}</span>`).join('')}
+    <div class="now" style="top:${y('15:12')}px"></div>
+  </div></div>`;
+const todo = () => `<div class="card"><h4>To-do <span>4 / 6</span></h4>
+  <div class="quick">＋ Ajouter… ex. « Exos Analyse 2h vendredi » <kbd>⌘N</kbd></div>
+  <div class="todo">
+    <div class="done"><i></i><span>Suites · Fiche résumé</span><small>1h</small></div>
+    <div class="done"><i></i><span>Exos Algèbre TD3</span><small>1h30</small></div>
+    <div><i></i><span>Limites · Exercices types</span><small>1h30</small></div>
+    <div><i></i><span>Projet Prog. impérative</span><small>2h</small></div>
+    <div><i></i><span>Rendre le DM d'Analyse</span><small>ven.</small></div>
+  </div></div>`;
+const R = (v, l, val) => { const C = 2 * Math.PI * 18; return `<div><svg viewBox="0 0 46 46"><circle class="t" cx="23" cy="23" r="18"/><circle class="v" cx="23" cy="23" r="18" style="stroke-dasharray:${C};stroke-dashoffset:${C * (1 - v)}"/></svg>${val}<br>${l}</div>`; };
+const essentials = () => `<div class="card"><h4>Essentiels <span>score 72</span></h4>
+  <div class="prayers">${['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].map((n, i) => `<div class="${i < 2 ? 'ok' : ''}"><i></i>${n}</div>`).join('')}</div>
+  <div class="rings">${R(.55, 'Travail', '3h18')}${R(.4, 'Calories', '760')}${R(.62, 'Pas', '4 350')}${R(.33, 'Salle', '1/3')}</div></div>`;
+const exam = () => `<div class="card"><div class="examline"><span class="jx">J-12</span><div style="flex:1"><b style="font-size:14px">Partiel Analyse</b>
+  <div class="bar"><i style="width:48%"></i></div><small style="color:var(--muted);font-size:12px">Préparation 48 % · 4 chapitres</small></div></div></div>`;
+
+const LAYOUT = {
+  A: `<div class="titlebar"><i></i><i></i><i></i><span>Quotidien</span><kbd>⌘K commandes</kbd></div>
+    <div class="body">${side(0)}
+      <section class="col"><div class="head"><h3>Mardi 20 octobre</h3><span>Bibliothèque · 6h de travail prévues</span></div>${dayGrid()}</section>
+      <section class="col">${todo()}${essentials()}${exam()}</section></div>`,
+  B: `<div class="titlebar"><i></i><i></i><i></i><span>Quotidien</span><kbd>⌘K commandes</kbd></div>
+    <div class="body">${side(1)}
+      <section class="col"><div class="head"><h3>Semaine du 19 octobre</h3><span>‹ ›</span></div>
+        <div class="week">${['Lun 19', 'Mar 20', 'Mer 21', 'Jeu 22', 'Ven 23', 'Sam 24', 'Dim 25'].map((d, i) => `<div class="wd"><b class="${i === 1 ? 'today' : ''}">${d}</b>
+          ${(i === 6 ? [['r', 'Repos'], ['r', 'Famille']] : [['t', 'Biblio 10–13'], ['r', 'Déj. 13–14:30'], ['t', 'Biblio 14:30–20'], ['t', i % 2 ? 'Exos Algèbre' : 'Fiche Suites'], ['c', i === 4 ? 'CC Algo' : 'Révision']]).map(([c, l]) => `<span class="${c}">${l}</span>`).join('')}</div>`).join('')}</div>
+        ${todo()}</section>
+      <section class="col rail"><div style="display:flex;align-items:center;gap:12px">${orb(54, 'joy', 'float')}<span style="font-size:13px;color:var(--muted)">Bloc du matin terminé,<br>bien joué !</span></div>
+        <div class="card"><h4>Maintenant <span>jusqu'à 20:00</span></h4><div class="nowbig">Bibliothèque</div><small style="color:var(--muted)">Limites · Exercices types</small></div>
+        <div class="card"><h4>Chrono</h4><div class="chrono"><b>1:42:10</b><button>❚❚</button></div></div>
+        ${essentials()}</section></div>`,
+};
+const HINT = {
+  A: 'Tout est visible d\'un coup : ta journée au centre, to-do et essentiels à droite. Les autres onglets (Planning, Examens, Stats) prennent les deux colonnes. Raccourcis : ⌘1 à ⌘4 pour les onglets, ⌘N pour une tâche, Espace pour le chrono.',
+  B: 'L\'onglet choisi occupe le grand panneau (ici la semaine), et un panneau « Aujourd\'hui » reste toujours à droite, quel que soit l\'onglet.',
+};
+function setLayout(l) {
+  const w = document.getElementById('win');
+  w.className = `win layout${l}`;
+  w.innerHTML = LAYOUT[l];
+  document.getElementById('layoutHint').textContent = HINT[l];
+  document.querySelectorAll('#segLayout button').forEach(b => b.classList.toggle('on', b.dataset.l === l));
+}
+document.getElementById('segLayout').onclick = e => { const b = e.target.closest('button'); if (b) setLayout(b.dataset.l); };
+setLayout('A');
+
+/* ---------- bureau ---------- */
+document.getElementById('desk').innerHTML = `
+  <div class="menubar"><b></b><b>Safari</b><span>Fichier</span><span>Édition</span><span>Affichage</span>
+    <div class="right"><span class="tray">${orb(16)} 1:42</span><span>mar. 20 oct. 15:12</span></div></div>
+  <div class="island" id="island">
+    <div class="rest">${orb(22)}<span>Analyse</span><span class="t" data-clock>1:42:10</span></div>
+    <div class="ev" id="ev"></div>
+    <div class="ext">
+      <div class="top">${orb(44)}<div><b>Limites · Exercices types</b><small>Bibliothèque · jusqu'à 20:00</small></div><span class="clock" data-clock>1:42:10</span></div>
+      <div class="acts"><button class="main">❚❚ Pause</button><button>✓ Tâche faite</button><button>⏭ Suivante</button></div>
+      <div class="nextp"><span>Prochaine prière : Asr à 16:22</span><span>Prochaine tâche : Démos de mémoire</span></div>
+    </div>
+  </div>
+  <div class="otherwin"><div class="tb"><i></i><i></i><i></i></div><p>Cours d'Analyse — chapitre 3<span></span><span style="width:80%"></span><span style="width:92%"></span><span style="width:60%"></span><span style="width:85%"></span></p></div>
+  <div class="widget">
+    <div class="wtop">${orb(40, 'neutral', 'float')}<div><b style="font-size:14px">Quotidien</b><div style="font-size:11.5px;color:var(--muted)">On avance tranquillement.</div></div><span class="pin on">📌 épinglé</span></div>
+    <div class="row"><span>Maintenant</span><b>Bibliothèque · jusqu'à 20:00</b></div>
+    <div class="row"><span>Tâche</span><b>Limites · Exercices types</b></div>
+    <div class="row"><span>Chrono</span><b class="big" data-clock>1:42:10</b></div>
+    <div class="row"><span>Prière</span><b>Asr à 16:22 · dans 1 h 10</b></div>
+  </div>
+  <div class="quickview" id="qv">
+    <div class="in">${orb(30)}<span>Exos Analyse 2h vendredi !!</span><span class="caret"></span></div>
+    <div class="chips"><span>vendredi 23</span><span>2 h</span><span>urgente</span><span>Analyse</span></div>
+    <div class="habits">Cocher : <i>✓ Asr</i><i>✓ Salle</i><i>＋ 500 kcal</i><span style="margin-left:auto">Entrée pour ajouter · Échap</span></div>
+  </div>`;
+const island = document.getElementById('island'), ev = document.getElementById('ev'), qv = document.getElementById('qv');
+const EVENTS = {
+  bloc: ['joy', 'Bloc terminé : Bibliothèque', 'Prochain : Déjeuner à 13:00'],
+  priere: ['rappel', 'Asr dans 10 minutes', '16:22 · tu es à la bibliothèque'],
+  pause: ['rappel', 'Pause de 15 min ?', 'Tu travailles depuis 2 h 30'],
+  habitude: ['neutral', 'As-tu fait la salle ?', 'Touche pour cocher · 1/3 cette semaine'],
+};
+let evTimer;
+function event(k) {
+  const [face, t, s] = EVENTS[k];
+  ev.innerHTML = `${orb(46, face)}<div><b>${t}</b><small>${s}</small></div>`;
+  island.className = 'island event';
+  clearTimeout(evTimer);
+  evTimer = setTimeout(() => { island.className = 'island'; }, 3200);
+}
+island.onclick = () => { clearTimeout(evTimer); island.className = island.classList.contains('open') ? 'island' : 'island open'; };
+document.querySelector('.controls').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const k = b.dataset.ev;
+  if (k === 'open') island.onclick();
+  else if (k === 'quick') qv.classList.toggle('on');
+  else event(k);
+};
+qv.onclick = () => qv.classList.remove('on');
+// chrono qui tourne
+let secs = 1 * 3600 + 42 * 60 + 10;
+setInterval(() => { secs++; const t = [Math.floor(secs / 3600), Math.floor(secs % 3600 / 60), secs % 60].map((n, i) => i ? String(n).padStart(2, '0') : n).join(':'); document.querySelectorAll('[data-clock]').forEach(c => { c.textContent = t; }); }, 1000);
+setTimeout(() => event('priere'), 1800);
+
+/* ---------- iPhone ---------- */
+const homeIcons = (n, app) => `<div class="icons">${Array.from({ length: n }, (_, i) => i === app ? `<i class="app">${orb(30)}</i>` : '<i></i>').join('')}</div>`;
+document.getElementById('phones').innerHTML = `
+  <div class="opt"><span class="tag">Recommandé · gratuit</span><h3>1 · Widget via Scriptable</h3>
+    <p>L'app gratuite Scriptable affiche un widget d'écran d'accueil (mascotte, bloc en cours, prochaine prière, chrono), lu depuis la synchro. Il se met à jour environ toutes les 15 min. Pas de Dynamic Island.</p>
+    <div class="phone"><div class="screen"><span class="clock">15:12</span><div class="notch"></div>
+      <div class="wmed">${orb(54, 'neutral')}<div class="info"><b>Bibliothèque</b><span>jusqu'à 20:00</span><span>Limites · Exos types</span><span class="acc">Asr 16:22 · chrono 1:42</span></div></div>
+      <div class="wname">Scriptable</div>${homeIcons(12, 5)}</div></div></div>
+  <div class="opt"><span class="tag mid">Le plus simple</span><h3>2 · Ordinateur seulement</h3>
+    <p>Rien en plus sur l'iPhone : la mascotte vit dans l'app. Le widget et la dynamic island existent seulement sur le Mac.</p>
+    <div class="phone"><div class="screen"><span class="clock">15:12</span><div class="notch"></div>${homeIcons(20, 9)}</div></div></div>
+  <div class="opt"><span class="tag no">Long · 99 €/an conseillé</span><h3>3 · App iPhone native</h3>
+    <p>Vraie Dynamic Island et écran verrouillé en direct (chrono, prière). Il faut refaire l'app iPhone en Swift. Avec un compte gratuit, il faut réinstaller depuis le Mac tous les 7 jours.</p>
+    <div class="phone"><div class="screen"><div class="notch live">${orb(16)}<span class="tm" data-clock>1:42:10</span></div>
+      <div class="lock"><div class="big">15:12</div><div class="date">mardi 20 octobre</div>
+      <div class="live-act">${orb(40, 'neutral')}<div><b>Limites · Exos types</b><span>Bibliothèque · Asr 16:22</span></div><span class="tm" data-clock>1:42:10</span></div></div></div></div></div>`;
+
+/* mise à l'échelle des maquettes */
+function fit() {
+  document.querySelectorAll('.scaler').forEach(s => {
+    const k = s.clientWidth / 1280;
+    s.style.height = `${800 * k}px`;
+    s.firstElementChild.style.transform = `scale(${k})`;
+  });
+}
+addEventListener('resize', fit); fit();
+</script>
+</body>
+</html>
