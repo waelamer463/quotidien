@@ -4,7 +4,8 @@ import { getData } from './storage.js';
 import { dateKey, addDays } from './util.js';
 import { PRAYERS } from './prayers.js';
 import { buildDay } from './planning-model.js';
-import { essentialsScore, kcalState, gymWeek, weekStart } from './essentials.js';
+import { essentialsScore, kcalState, gymWeek, weekStart, sleepMinutes } from './essentials.js';
+import { minutesOn } from './chrono.js';
 
 export const WEIGHT_ESS = 0.6; // essentiels 60 %, to-do 40 %
 
@@ -123,4 +124,90 @@ export function averageShare(days = 30, today = dateKey()) {
   }
   for (const k in sum) sum[k] = Math.round(sum[k] / days);
   return sum;
+}
+
+/* ---------- Semaine contre semaine ---------- */
+
+// Compare la semaine en cours (lundi → aujourd'hui) aux mêmes jours de la semaine dernière.
+export function weekTrends(today = dateKey()) {
+  const mon = weekStart(today);
+  const n = Math.round((new Date(today) - new Date(mon)) / 864e5) + 1;
+  const range = start => Array.from({ length: n }, (_, i) => addDays(start, i));
+  const measure = days => {
+    const { log, tasks } = getData();
+    const ls = days.map(k => log[k] || {});
+    const pr = ls.flatMap(l => Object.values(l.prayers || {}));
+    const pas = ls.map(l => l.pas).filter(Boolean);
+    const sleep = ls.map(sleepMinutes).filter(v => v !== null);
+    const scores = days.map(dayScore).filter(v => v !== null);
+    const avg = a => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
+    return {
+      work: days.reduce((m, k) => m + minutesOn(k), 0),
+      score: avg(scores),
+      prayers: pr.length ? pr.filter(v => v === 'heure').length / pr.length : null,
+      pas: avg(pas),
+      salle: ls.filter(l => l.salle).length,
+      sleep: avg(sleep),
+      tasks: tasks.filter(t => t.done && days.includes(t.date)).length,
+    };
+  };
+  return { n, cur: measure(range(mon)), prev: measure(range(addDays(mon, -7))) };
+}
+
+/* ---------- Heatmap des heures de travail ---------- */
+
+export function workHeatmap(weeks = 18, today = dateKey()) {
+  const first = addDays(weekStart(today), -7 * (weeks - 1));
+  const cols = [];
+  for (let w = 0; w < weeks; w++) {
+    cols.push(Array.from({ length: 7 }, (_, d) => {
+      const k = addDays(first, w * 7 + d);
+      return { key: k, min: k > today ? null : minutesOn(k) };
+    }));
+  }
+  return cols;
+}
+
+/* ---------- Estimations : prévu contre réel ---------- */
+
+export function estimates(days = 60, today = dateKey()) {
+  const from = addDays(today, -days);
+  const list = getData().sessions.filter(s => s.planned && s.date >= from && s.minutes >= 5);
+  if (!list.length) return null;
+  const ratios = list.map(s => s.minutes / s.planned).sort((a, b) => a - b);
+  const median = ratios[Math.floor(ratios.length / 2)];
+  const close = list.filter(s => Math.abs(s.minutes - s.planned) <= Math.max(10, s.planned * 0.15)).length;
+  return { n: list.length, median, closeRate: close / list.length, recent: list.slice(-8) };
+}
+
+/* ---------- Ce qui t'aide : corrélations simples ---------- */
+
+// Heures de travail moyennes selon qu'une condition est vraie ou non (jours passés avec données).
+export function correlations(days = 60, today = dateKey()) {
+  const { log, essentials: e } = getData();
+  const keys = Array.from({ length: days }, (_, i) => addDays(today, -(i + 1)));
+  const withWork = keys.filter(k => minutesOn(k) > 0 || log[k]);
+  const avg = a => (a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length) : null);
+  const split = (label, test, known = () => true) => {
+    const ks = withWork.filter(k => known(log[k] || {}));
+    const yes = ks.filter(k => test(log[k] || {})).map(minutesOn);
+    const no = ks.filter(k => !test(log[k] || {})).map(minutesOn);
+    return { label, yes: avg(yes), no: avg(no), ny: yes.length, nn: no.length };
+  };
+  return [
+    split('Salle le jour même', l => Boolean(l.salle)),
+    split(`${e.steps.toLocaleString('fr-FR')} pas ou plus`, l => l.pas >= e.steps, l => Boolean(l.pas)),
+    split(`Nuit de ${Math.floor(e.sleepGoal / 60)} h${e.sleepGoal % 60 ? String(e.sleepGoal % 60).padStart(2, '0') : ''} ou plus`,
+      l => sleepMinutes(l) >= e.sleepGoal, l => sleepMinutes(l) !== null),
+  ];
+}
+
+/* ---------- Notes ---------- */
+
+export function gradeStats() {
+  const graded = getData().exams.filter(x => x.grade !== null && x.grade !== undefined)
+    .sort((a, b) => b.date.localeCompare(a.date));
+  const w = graded.reduce((n, x) => n + x.coef, 0);
+  const avg = w ? graded.reduce((n, x) => n + (x.grade / (x.gradeMax || 20)) * 20 * x.coef, 0) / w : null;
+  return { graded, avg };
 }

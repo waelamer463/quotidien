@@ -2,7 +2,12 @@
 
 import { dateKey, parseKey, fmt, esc } from './util.js';
 import { PRAYERS, PRAYER_NAMES } from './prayers.js';
-import { scoreSeries, standing, essentialsStats, todoStats, dayShare, averageShare, SHARE, WEIGHT_ESS } from './insights.js';
+import { scoreSeries, standing, essentialsStats, todoStats, dayShare, averageShare, SHARE, WEIGHT_ESS,
+  weekTrends, workHeatmap, estimates, correlations, gradeStats } from './insights.js';
+import { getData } from './storage.js';
+import { minutesBySubject, weekRange, fmtMin } from './chrono.js';
+import { EXAM_TYPES } from './revision-defaults.js';
+import { examName } from './exams-model.js';
 
 const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
 const hours = m => (m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? String(m % 60).padStart(2, '0') : ''}` : `${m} min`);
@@ -31,6 +36,13 @@ export function render(el) {
       ${scoreChart(series, st)}
       <p class="small muted">Essentiels ${Math.round(WEIGHT_ESS * 100)} % · to-do ${Math.round((1 - WEIGHT_ESS) * 100)} %. Touche une barre pour voir le jour.</p>
     </div>
+
+    ${trendsCard()}
+    ${heatmapCard()}
+    ${subjectsCard()}
+    ${estimatesCard()}
+    ${correlationsCard()}
+    ${gradesCard()}
 
     <h2 class="section-title">Essentiels sur 30 jours</h2>
     <div class="card">
@@ -74,6 +86,19 @@ export function render(el) {
       </table>
       <p class="small muted">D'après ton planning (prévu), hors repos et temps libre.</p>
     </div>`;
+
+  // lecture d'une case de la heatmap
+  const heat = el.querySelector('.heatmap');
+  const heatOut = el.querySelector('.heat-readout');
+  const showHeat = e => {
+    const c = e.target.closest('[data-hk]');
+    if (!c) return;
+    heat.querySelectorAll('.on').forEach(x => x.classList.remove('on'));
+    c.classList.add('on');
+    heatOut.textContent = `${shortDate(c.dataset.hk)} : ${Number(c.dataset.m) ? fmtMin(Number(c.dataset.m)) : 'rien'}`;
+  };
+  heat?.addEventListener('pointerdown', showHeat);
+  heat?.addEventListener('pointerover', showHeat);
 
   // lecture d'une barre du score
   const chart = el.querySelector('.score-chart');
@@ -129,4 +154,140 @@ function shareBar(share) {
   if (!total) return '<div class="share empty"></div>';
   return `<div class="share">${SHARE.map(([k, l], i) => share[k]
     ? `<i class="s${i + 1}" style="flex:${share[k]}" title="${esc(l)} : ${hours(share[k])}"></i>` : '').join('')}</div>`;
+}
+
+/* ---------- E6 ---------- */
+
+function trendsCard() {
+  const { n, cur, prev } = weekTrends();
+  const rows = [
+    ['Heures de travail', cur.work, prev.work, v => fmtMin(Math.round(v)), 60],
+    ['Score moyen', cur.score, prev.score, v => Math.round(v), 3],
+    ['Prières à l\'heure', cur.prayers, prev.prayers, v => `${Math.round(v * 100)} %`, 0.05],
+    ['Pas par jour', cur.pas, prev.pas, v => fmt(Math.round(v)), 500],
+    ['Sommeil moyen', cur.sleep, prev.sleep, v => fmtMin(Math.round(v)), 20],
+    ['Séances de salle', cur.salle, prev.salle, v => v, 1],
+    ['Tâches faites', cur.tasks, prev.tasks, v => v, 1],
+  ];
+  return `
+    <h2 class="section-title">Cette semaine</h2>
+    <div class="card trends">
+      <p class="small muted">Lundi → aujourd'hui, comparé aux ${n} mêmes jours de la semaine dernière.</p>
+      ${rows.map(([l, a, b, f, step]) => {
+        const has = a !== null && a !== undefined;
+        const d = has && b !== null && b !== undefined ? a - b : null;
+        const dir = d === null || Math.abs(d) < step ? 'eq' : d > 0 ? 'up' : 'down';
+        return `<div class="trend-row"><span>${l}</span><b class="mono">${has ? f(a) : '—'}</b>
+          <span class="trend ${dir}">${d === null ? '' : dir === 'eq' ? '= stable' : `${dir === 'up' ? '▲' : '▼'} ${f(Math.abs(d))}`}</span></div>`;
+      }).join('')}
+    </div>`;
+}
+
+function heatmapCard() {
+  const cols = workHeatmap(18);
+  const cell = 15, gap = 3, left = 14;
+  const lvl = m => (m === null ? 'fut' : !m ? 'h0' : m < 60 ? 'h1' : m < 120 ? 'h2' : m < 240 ? 'h3' : m < 360 ? 'h4' : 'h5');
+  const total = cols.flat().reduce((n, c) => n + (c.min || 0), 0);
+  const days = cols.flat().filter(c => c.min).length;
+  const W = left + cols.length * (cell + gap), H = 7 * (cell + gap);
+  return `
+    <h2 class="section-title">Heures de travail</h2>
+    <div class="card">
+      <div class="heat-readout">${fmtMin(total)} sur 18 semaines · ${days} jours travaillés</div>
+      <svg class="heatmap" viewBox="0 0 ${W} ${H}" role="img" aria-label="Heures de travail par jour, 18 dernières semaines">
+        ${['L', '', 'M', '', 'V', '', 'D'].map((l, i) => l ? `<text class="sc-axis" x="0" y="${i * (cell + gap) + 11}">${l}</text>` : '').join('')}
+        ${cols.map((col, w) => col.map((c, d) => `<rect class="hc ${lvl(c.min)}" ${c.min !== null ? `data-hk="${c.key}" data-m="${c.min}"` : ''}
+          x="${left + w * (cell + gap)}" y="${d * (cell + gap)}" width="${cell}" height="${cell}" rx="3.5"/>`).join('')).join('')}
+      </svg>
+      <div class="heat-legend small muted">Moins ${['h0', 'h1', 'h2', 'h3', 'h4', 'h5'].map(h => `<i class="${h}"></i>`).join('')} Plus
+</div>
+      <p class="small muted">D'après tes sessions de chrono. Case la plus claire : 6 h ou plus. Touche une case pour voir le jour.</p>
+    </div>`;
+}
+
+function subjectsCard() {
+  const [from, to] = weekRange(dateKey());
+  const week = minutesBySubject(from, to);
+  const four = minutesBySubject(addDaysKey(from, -21), to);
+  const subjects = getData().planning.subjects;
+  if (!subjects.length) return '';
+  return `
+    <h2 class="section-title">Par matière</h2>
+    <div class="subj-rings">
+      ${subjects.map(s => {
+        const m = week[s.id] || 0;
+        const goal = (s.weeklyGoal || 0) * 60;
+        const ratio = goal ? Math.min(1, m / goal) : (m ? 1 : 0);
+        const C = 2 * Math.PI * 26;
+        return `
+          <div class="subj-ring" style="--sc:${s.color}">
+            <svg viewBox="0 0 64 64"><circle class="t" cx="32" cy="32" r="26"/>
+              <circle class="v" cx="32" cy="32" r="26" style="stroke-dasharray:${C};stroke-dashoffset:${C * (1 - ratio)}"/></svg>
+            <b class="mono">${fmtMin(m)}${goal ? `<small>/${s.weeklyGoal}h</small>` : ''}</b>
+            <span>${esc(s.short)}</span>
+            <span class="mono">4 sem. ${fmtMin(four[s.id] || 0)}</span>
+          </div>`;
+      }).join('')}
+    </div>
+    <p class="small muted note">Cette semaine, par rapport à ton objectif hebdo (Réglages → Matières).</p>`;
+}
+
+function addDaysKey(k, n) {
+  const d = parseKey(k); d.setDate(d.getDate() + n); return dateKey(d);
+}
+
+function estimatesCard() {
+  const e = estimates(60);
+  if (!e) return `
+    <h2 class="section-title">Tes estimations</h2>
+    <div class="card"><p class="small muted">Lance le chrono avec une durée prévue (ou depuis une tâche) : l'app comparera le prévu et le réel.</p></div>`;
+  const pctOff = Math.round((e.median - 1) * 100);
+  const max = Math.max(...e.recent.flatMap(s => [s.minutes, s.planned]));
+  return `
+    <h2 class="section-title">Tes estimations</h2>
+    <div class="card">
+      <div class="m-top"><span class="name">${Math.abs(pctOff) <= 10 ? 'Tes estimations sont justes'
+        : pctOff > 0 ? `Tu prends ${pctOff} % de temps en plus que prévu` : `Tu finis ${-pctOff} % plus vite que prévu`}</span></div>
+      <p class="small muted">${Math.round(e.closeRate * 100)} % des ${e.n} sessions à ±15 % du prévu (60 jours).</p>
+      <div class="est-list">${e.recent.map(s => `
+        <div class="est-row"><span class="small">${esc(s.label || 'Session')}</span>
+          <span class="est-bars"><i class="plan" style="width:${s.planned / max * 100}%"></i><i class="real" style="width:${s.minutes / max * 100}%"></i></span>
+          <span class="mono small">${fmtMin(s.minutes)}/${fmtMin(s.planned)}</span></div>`).join('')}</div>
+      <div class="stack-legend"><span><i class="est-plan"></i>Prévu</span><span><i class="est-real"></i>Réel</span></div>
+    </div>`;
+}
+
+function correlationsCard() {
+  const rows = correlations(60);
+  return `
+    <h2 class="section-title">Ce qui t'aide</h2>
+    <div class="card">
+      <p class="small muted">Heures de travail moyennes, selon la journée (60 derniers jours).</p>
+      ${rows.map(r => {
+        if (r.ny < 3 || r.nn < 3) return `<div class="cor-row"><span class="name">${r.label}</span>
+          <span class="small muted">Pas encore assez de jours (${r.ny} avec, ${r.nn} sans ; il en faut 3 de chaque).</span></div>`;
+        const max = Math.max(r.yes, r.no, 1);
+        const d = r.no ? Math.round((r.yes - r.no) / r.no * 100) : null;
+        return `<div class="cor-row"><span class="name">${r.label}${d !== null ? ` <b class="trend ${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '+' : ''}${d} %</b>` : ''}</span>
+          <span class="cor-bar"><span class="small">Oui</span><i class="yes" style="width:${r.yes / max * 100}%"></i><b class="mono small">${fmtMin(r.yes)}</b></span>
+          <span class="cor-bar"><span class="small">Non</span><i class="no" style="width:${r.no / max * 100}%"></i><b class="mono small">${fmtMin(r.no)}</b></span></div>`;
+      }).join('')}
+      <p class="small muted">Une tendance, pas une preuve : d'autres choses jouent (cours, examens…).</p>
+    </div>`;
+}
+
+function gradesCard() {
+  const { graded, avg } = gradeStats();
+  if (!graded.length) return '';
+  return `
+    <h2 class="section-title">Notes</h2>
+    <div class="card">
+      <div class="m-top"><span class="name">Moyenne pondérée</span><b class="mono grade-avg">${avg.toFixed(2).replace('.', ',')}/20</b></div>
+      <div class="tasks">${graded.map(x => `
+        <a class="task row-link" href="#examens/${x.id}">
+          <span class="grow"><span class="task-title">${esc(EXAM_TYPES[x.type])} · ${esc(examName(x))}</span>
+            <span class="small muted">coef. ${x.coef}${x.readyAtExam !== undefined ? ` · préparation ${Math.round(x.readyAtExam * 100)} %` : ''}</span></span>
+          <b class="mono grade">${String(x.grade).replace('.', ',')}/${x.gradeMax}</b>
+        </a>`).join('')}</div>
+    </div>`;
 }
