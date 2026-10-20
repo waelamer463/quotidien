@@ -940,8 +940,8 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
 :root[data-mode="clair"] input[type="date"], :root[data-mode="clair"] input[type="time"] { color-scheme: light; }
 
 /* chiffres */
-.tl-time, .m-val, .hero-score, .tile b, .seg-time, .b-time, .stepper b, .prayer small, .sc-axis, .g-hour span,
-.value, .summary b, .wday b, .per-prayer b, .gym-weeks i, .sky-next, .ring-val, .share-legend td:not(:first-child), .jx, .load, .mono {
+.tl-time, .m-val, .hero-score, .tile b, .seg-time, .b-time, .stepper b, .sc-axis, .g-hour span,
+.value, .summary b, .wday b, .per-prayer b, .gym-weeks i, .sky-next, .ring-val, .share-legend td:not(:first-child), .jx, .load, .mono, .prayer .p-time {
   font-family: var(--mono); font-variant-numeric: tabular-nums; letter-spacing: -0.02em;
 }
 .sky-next { font-size: 13px; }
@@ -1023,3 +1023,10 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
 .gym-week span.cur { box-shadow: inset 0 0 0 1.5px var(--accent); }
 .health-row { margin-top: 12px; }
 .segmented button.on, .segmented button.on span, .segmented input:checked + span { color: var(--on-accent); }
+
+/* prières : 5 colonnes qui tiennent sur un iPhone */
+.prayers { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+.prayer { min-width: 0; overflow: hidden; padding: 10px 0 8px; }
+.prayer b { font-size: 12px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.prayer small { font-family: var(--sans); font-size: 10.5px; letter-spacing: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.prayer.heure .p-dot, .prayer.rattrapee .p-dot, .prayer.manquee .p-dot { transform: scale(1.04); }
