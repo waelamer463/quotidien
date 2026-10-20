@@ -1,6 +1,8 @@
-// État vide commun : une phrase, éventuellement une action. (La mascotte s'y ajoutera.)
+// État vide commun : la mascotte, une phrase, éventuellement une action.
 
-export function emptyState(title, text = '', action = '') {
-  return `<div class="empty-state"><span class="es-mascot" aria-hidden="true"></span>
+import { orb } from './orb.js';
+
+export function emptyState(title, text = '', action = '', face = 'neutral') {
+  return `<div class="empty-state"><span class="es-mascot">${orb(52, face)}</span>
     <div><b>${title}</b>${text ? `<p>${text}</p>` : ''}${action}</div></div>`;
 }

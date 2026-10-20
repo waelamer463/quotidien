@@ -26,6 +26,7 @@ function defaults() {
     settings: {
       lastTab: 'aujourdhui',
       theme: { dir: 'polaire', mode: 'sombre' },
+      mascot: { size: 'normal', mute: false, best: 0, recent: [] },
     },
   };
 }

@@ -1,7 +1,7 @@
 // Stratégie "réseau d'abord" : en ligne, tu reçois toujours la dernière version ;
 // hors ligne, l'app se charge depuis le cache.
 
-const CACHE = 'quotidien-v28';
+const CACHE = 'quotidien-v29';
 const FILES = [
   './',
   'index.html',
@@ -39,6 +39,8 @@ const FILES = [
   'js/course-wizard.js',
   'js/dialog.js',
   'js/empty.js',
+  'js/orb.js',
+  'js/mascot.js',
   'js/exams-model.js',
   'js/exams-view.js',
   'js/icons.js',

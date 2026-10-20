@@ -5,9 +5,12 @@ import { esc } from './util.js';
 import { DIRECTIONS, MODES, currentTheme, setTheme } from './theme.js';
 import { openSheet } from './sheet.js';
 import { renderSettings as renderPlanningSettings } from './planning-view.js';
+import { mascotSettings, setMascot, renderHead } from './mascot.js';
+import { orb } from './orb.js';
 
 export function render(el) {
   const t = currentTheme();
+  const ms = mascotSettings();
   const e = getData().essentials;
   el.innerHTML = `
     <h2 class="section-title">Apparence</h2>
@@ -22,6 +25,18 @@ export function render(el) {
       ${Object.entries(MODES).map(([k, l]) => `<button class="${t.mode === k ? 'on' : ''}" data-mode="${k}">${l}</button>`).join('')}
     </div>
     <p class="small muted note">Ce choix devient ton thème par défaut.</p>
+
+    <h2 class="section-title">Mascotte</h2>
+    <div class="card pal-settings">
+      <div class="pal-set-row">${orb(52, 'joy')}
+        <div class="segmented">
+          <button class="${ms.size !== 'reduite' ? 'on' : ''}" data-pal-size="normal">Normale</button>
+          <button class="${ms.size === 'reduite' ? 'on' : ''}" data-pal-size="reduite">Réduite</button>
+        </div>
+      </div>
+      <label class="switch"><input type="checkbox" data-pal-mute ${ms.mute ? '' : 'checked'}><span>Petites phrases</span></label>
+      <p class="small muted">Réduite : seulement le petit visage en haut à droite. Sans les phrases, elle réagit toujours, mais en silence.</p>
+    </div>
 
     <h2 class="section-title">Objectifs des essentiels</h2>
     <button class="card row-link" data-goals style="width:100%;border:none;font:inherit;color:inherit;text-align:left">
@@ -43,6 +58,10 @@ export function render(el) {
     if (d) { setTheme({ dir: d.dataset.dir }); render(el); }
     else if (m) { setTheme({ mode: m.dataset.mode }); render(el); }
     else if (ev.target.closest('[data-goals]')) editGoals(el);
+    else if (ev.target.closest('[data-pal-size]')) { setMascot({ size: ev.target.closest('[data-pal-size]').dataset.palSize }); renderHead(); render(el); }
+  };
+  el.onchange = ev => {
+    if (ev.target.matches('[data-pal-mute]')) setMascot({ mute: !ev.target.checked });
   };
   return 'Réglages';
 }

@@ -10,6 +10,7 @@ import { minutesOn, fmtMin } from './chrono.js';
 import { upcoming, daysUntil } from './exams-model.js';
 import { examCard } from './exams-view.js';
 import { homeCard } from './review-view.js';
+import { stripHTML } from './mascot.js';
 import { SHORTCUT_URL, parse, apply } from './health-import.js';
 import { openSheet } from './sheet.js';
 import { todoSection, handleTodoClick, bindQuick, taskBlocks } from './todo-view.js';
@@ -40,6 +41,7 @@ export function render(el) {
       <button class="icon-btn" data-act="next" aria-label="Jour suivant">${icon('right')}</button>
     </div>`}
 
+    ${day === today ? stripHTML() : ''}
     ${day === today ? nowCard(built.items) : ''}
     ${day === today ? upcoming().filter(x => daysUntil(x.date) <= 60).slice(0, 2).map(x => examCard(x, true)).join('') : ''}
     ${day === today ? homeCard(today) : ''}

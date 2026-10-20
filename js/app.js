@@ -11,6 +11,7 @@ import { icon } from './icons.js';
 import { renderSky } from './sky.js';
 import { dailyCheck } from './revision-plan.js';
 import { watchFeedback } from './revision-feedback.js';
+import { startMascot, renderHead } from './mascot.js';
 
 const views = {
   aujourdhui: {
@@ -74,6 +75,7 @@ function render() {
   head.setAttribute('aria-label', inSettings ? 'Retour' : 'Réglages');
   head.innerHTML = icon(inSettings ? 'left' : 'settings');
   renderSky(document.querySelector('.topbar'));
+  renderHead();
   if (!['reglages', 'chrono', 'bilan'].includes(tab)) update(d => { d.settings.lastTab = tab; });
   chronoView.renderBar();
 }
@@ -107,6 +109,7 @@ dailyCheck();
 watchFeedback();
 tick();
 render();
+startMascot();
 requestPersistence();
 
 // ?nosw : désactive le mode hors ligne (tests automatisés uniquement)

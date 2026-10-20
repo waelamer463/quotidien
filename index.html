@@ -34,7 +34,10 @@
         <h1 id="view-title">Aujourd'hui</h1>
         <p id="today" class="muted"></p>
       </div>
-      <a class="icon-btn head-btn" href="#reglages" aria-label="Réglages"><span data-icon="settings"></span></a>
+      <div class="head-actions">
+        <button class="pal-head" id="pal-head" aria-label="Mascotte"></button>
+        <a class="icon-btn head-btn" href="#reglages" aria-label="Réglages"><span data-icon="settings"></span></a>
+      </div>
     </div>
     <div class="sky"></div>
   </header>
@@ -48,6 +51,11 @@
     <a href="#examens" data-tab="examens"><span data-icon="course"></span><span>Examens</span></a>
     <a href="#stats" data-tab="stats"><span data-icon="stats"></span><span>Stats</span></a>
   </nav>
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+    <radialGradient id="orbFill" cx="38%" cy="30%" r="75%"><stop offset="0" style="stop-color:var(--orb-1)"/><stop offset=".6" style="stop-color:var(--orb-2)"/><stop offset="1" style="stop-color:var(--orb-3)"/></radialGradient>
+    <radialGradient id="orbShine" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  </defs></svg>
 
   <script type="module" src="js/app.js"></script>
 </body>
