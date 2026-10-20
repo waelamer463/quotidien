@@ -48,6 +48,11 @@ if (err || !refresh) {
     <button class="btn secondary" id="here">Ouvrir Quotidien ici</button>
     <p class="small muted">Ce code ne sert qu'une fois. Ne le partage avec personne.</p>`;
   document.getElementById('c').textContent = refresh;
+  // sur iPhone/iPad, l'app installée ne partage pas les données de Safari : seul le code compte
+  if (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+    document.getElementById('here').previousElementSibling.remove();
+    document.getElementById('here').remove();
+  }
   document.getElementById('copy').onclick = async () => {
     try { await navigator.clipboard.writeText(refresh); document.getElementById('ok').textContent = '✓ Copié. Tu peux revenir dans l\'app.'; }
     catch { document.getElementById('ok').textContent = 'Copie impossible : sélectionne le code et copie-le à la main.'; }
