@@ -57,7 +57,8 @@ if (err || !refresh) {
     try { await navigator.clipboard.writeText(refresh); document.getElementById('ok').textContent = '✓ Copié. Tu peux revenir dans l\'app.'; }
     catch { document.getElementById('ok').textContent = 'Copie impossible : sélectionne le code et copie-le à la main.'; }
   };
-  document.getElementById('here').onclick = () => {
+  const here = document.getElementById('here');
+  if (here) here.onclick = () => {
     let p = {};
     try { p = JSON.parse(atob(access.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); } catch {}
     localStorage.setItem('quotidien:auth', JSON.stringify({
