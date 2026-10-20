@@ -6,6 +6,7 @@ import { applyTheme } from './theme.js';
 import * as chronoView from './chrono-view.js';
 import * as examsView from './exams-view.js';
 import * as planningView from './planning-view.js';
+import * as reviewView from './review-view.js';
 import { icon } from './icons.js';
 import { renderSky } from './sky.js';
 import { dailyCheck } from './revision-plan.js';
@@ -36,6 +37,10 @@ const views = {
     title: 'Planning',
     render: planningView.render,
   },
+  bilan: {
+    title: 'Bilan',
+    render: reviewView.render,
+  },
 };
 
 // L'URL a la forme #onglet/sous-page/argument, ex. #habitudes/modifier/abc123
@@ -58,7 +63,7 @@ function render() {
   bar.classList.toggle('no-pill', i < 0);
   window.scrollTo(0, 0);
   renderSky(document.querySelector('.topbar'));
-  if (tab !== 'reglages' && tab !== 'chrono') update(d => { d.settings.lastTab = tab; });
+  if (!['reglages', 'chrono', 'bilan'].includes(tab)) update(d => { d.settings.lastTab = tab; });
   chronoView.renderBar();
 }
 

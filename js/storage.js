@@ -20,6 +20,7 @@ function defaults() {
     chrono: null,    // chrono en cours
     exams: [],       // évaluations (mode examens)
     revision: revisionDefaults(), // profil de révision et méthodes
+    weekly: {},      // objectifs de la semaine (bilan du dimanche)
     essentials: { kcalMin: 1600, kcalMax: 1900, steps: 7000, gymPerWeek: 3,
       workGoal: { bibliotheque: 360, cours: 120, repos: 0 }, sleepGoal: 450 }, // minutes
     settings: {

@@ -5,6 +5,7 @@ import { PRAYERS, PRAYER_NAMES } from './prayers.js';
 import { scoreSeries, standing, essentialsStats, todoStats, dayShare, averageShare, SHARE, WEIGHT_ESS,
   weekTrends, workHeatmap, estimates, correlations, gradeStats } from './insights.js';
 import { getData } from './storage.js';
+import { icon } from './icons.js';
 import { minutesBySubject, weekRange, fmtMin } from './chrono.js';
 import { EXAM_TYPES } from './revision-defaults.js';
 import { examName } from './exams-model.js';
@@ -37,6 +38,8 @@ export function render(el) {
       <p class="small muted">Essentiels ${Math.round(WEIGHT_ESS * 100)} % · to-do ${Math.round((1 - WEIGHT_ESS) * 100)} %. Touche une barre pour voir le jour.</p>
     </div>
 
+    <a class="card row-link review-link" href="#bilan"><span class="grow"><span class="name">Bilan de la semaine</span>
+      <span class="muted small">Résumé, semaines passées, objectif de la semaine prochaine</span></span>${icon('right', 'chev')}</a>
     ${trendsCard()}
     ${heatmapCard()}
     ${subjectsCard()}

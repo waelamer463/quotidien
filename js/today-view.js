@@ -9,6 +9,7 @@ import { PRAYER_STATES, dayLog, setLog, cyclePrayer, gymWeek, kcalState, workGoa
 import { minutesOn, fmtMin } from './chrono.js';
 import { upcoming, daysUntil } from './exams-model.js';
 import { examCard } from './exams-view.js';
+import { homeCard } from './review-view.js';
 import { SHORTCUT_URL, parse, apply } from './health-import.js';
 import { openSheet } from './sheet.js';
 import { todoSection, handleTodoClick, bindQuick, taskBlocks } from './todo-view.js';
@@ -37,6 +38,7 @@ export function render(el) {
 
     ${day === today ? nowCard(built.items) : ''}
     ${day === today ? upcoming().filter(x => daysUntil(x.date) <= 60).slice(0, 2).map(x => examCard(x, true)).join('') : ''}
+    ${day === today ? homeCard(today) : ''}
     ${conflictNote(built.items)}
 
     <div class="ess-head">

@@ -1267,3 +1267,26 @@ button.task.method { width: 100%; border: 1px solid var(--edge); font: inherit; 
 .cor-bar .no { background: var(--muted); opacity: .45; }
 .cor-bar b { text-align: right; font-weight: 600; }
 .grade-avg { font-size: 20px; }
+
+/* ---------- E7 : bilan de la semaine ---------- */
+.review-hero .hero-score { margin: 4px 0; }
+.review-hero p { margin: 4px 0 0; }
+.goal-recap { margin-top: 10px !important; padding-top: 10px; border-top: 1px solid var(--line); font-size: 14px; }
+.review-list { display: flex; flex-direction: column; }
+.review-list .trend-row:first-child { border-top: 0; }
+.review-list .trend-row { grid-template-columns: 1fr auto; row-gap: 0; }
+.review-list .trend-row .trend { grid-column: 1 / -1; text-align: left; font-weight: 500; }
+.review-list .trend-row .trend:empty { display: none; }
+.review-subj { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
+.rs-row { display: grid; grid-template-columns: 92px 1fr auto; gap: 8px; align-items: center; }
+.rs-row > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rs-bar i { display: block; height: 8px; border-radius: 4px; }
+.rs-row small { color: var(--muted); font-size: 10px; }
+.review-cta, .review-link { display: flex; align-items: center; gap: 12px; color: inherit; text-decoration: none; }
+.review-cta .grow, .review-link .grow { display: flex; flex-direction: column; gap: 2px; }
+.review-cta { box-shadow: inset 0 0 0 1px var(--accent); }
+.goal-card { display: flex; flex-direction: column; gap: 6px; color: inherit; text-decoration: none; }
+.goal-card .label { font-size: 12px; color: var(--muted); }
+.goal-card .bar { display: block; height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+.goal-card .bar i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+.goal-form .grid2 { grid-template-columns: 2fr 1fr; }
