@@ -1109,3 +1109,48 @@ input[type="date"], input[type="time"] { color-scheme: dark; }
 @keyframes pulse { 50% { opacity: .35; transform: scale(.8); } }
 body.has-chrono { padding-bottom: calc(var(--tabbar-h) + 100px + env(safe-area-inset-bottom)); }
 .sleep-card .grow { flex: 1; min-width: 0; }
+
+/* ---------- E3 · to-do ---------- */
+.segmented.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.segmented.four button { font-size: 13px; padding: 0 2px; }
+.segmented .count {
+  display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; margin-left: 5px;
+  border-radius: 9px; background: var(--accent); color: var(--on-accent); font-style: normal; font-size: 11px; font-weight: 700;
+}
+.segmented button.on .count { background: var(--on-accent); color: var(--accent); }
+
+.task.swipe { position: relative; overflow: hidden; touch-action: pan-y; }
+.task.swipe > :not(.sw-bg) { position: relative; z-index: 1; transform: translateX(var(--dx, 0)); transition: transform .25s var(--ease); }
+.task.swipe.swiping > :not(.sw-bg) { transition: none; }
+.task.swipe.leaving > :not(.sw-bg) { transition: transform .22s ease-in; }
+.task.swipe.leaving .sw-bg { width: 100%; }
+.sw-bg {
+  position: absolute; inset: 0; display: flex; align-items: center; gap: 8px; padding: 0 20px;
+  font-weight: 700; font-size: 14px; opacity: 0; transition: opacity .15s;
+}
+.sw-bg .ic { width: 20px; height: 20px; stroke-width: 2.4; }
+.sw-done { right: auto; width: max(0px, var(--dx, 0px)); background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--accent); justify-content: flex-start; overflow: hidden; white-space: nowrap; }
+.sw-later { left: auto; width: max(0px, calc(-1 * var(--dx, 0px))); background: color-mix(in srgb, var(--warm) 22%, transparent); color: var(--warm); justify-content: flex-end; overflow: hidden; white-space: nowrap; }
+.task.to-done .sw-done, .task.to-later .sw-later { opacity: .6; }
+.task.armed.to-done .sw-done, .task.armed.to-later .sw-later { opacity: 1; }
+.task.armed.to-done .sw-done .ic { transform: scale(1.2); filter: drop-shadow(0 0 6px var(--accent)); }
+
+.subbar { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 12px; color: var(--muted); }
+.subbar .bar { flex: 1; max-width: 120px; height: 4px; }
+
+.subtasks { display: flex; flex-direction: column; gap: 6px; }
+.sub-row, .sub-add { display: flex; align-items: center; gap: 8px; }
+.sub-row input[data-sub-title], .sub-add input { flex: 1; min-width: 0; min-height: 44px; }
+.sub-row input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent); flex: none; }
+.sub-add .icon-btn { width: 44px; height: 44px; flex: none; }
+
+#toast {
+  position: fixed; z-index: 60; left: 50%; transform: translateX(-50%);
+  bottom: calc(12px + var(--tabbar-h) + 14px + env(safe-area-inset-bottom));
+  display: flex; align-items: center; gap: 14px; padding: 12px 14px 12px 18px; border-radius: 18px;
+  background: var(--solid); border: 1px solid var(--edge); box-shadow: 0 14px 30px -10px rgba(0, 0, 0, .5);
+  font-weight: 600; font-size: 14px; animation: up .3s var(--ease); white-space: nowrap;
+}
+#toast button { border: none; background: var(--accent-soft); color: var(--accent); font: inherit; font-weight: 700; padding: 6px 12px; border-radius: 12px; cursor: pointer; }
+#toast.out { opacity: 0; transition: opacity .3s; }
+body.has-chrono #toast { bottom: calc(12px + var(--tabbar-h) + 84px + env(safe-area-inset-bottom)); }

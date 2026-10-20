@@ -1,7 +1,8 @@
 // To-do : modèle, ajout rapide en langage naturel, tâches répétées.
 //
-// Tâche : { id, title, date, start, end, duration, priority (1 normale · 2 importante · 3 urgente),
-//           deadline, subject, done, doneAt, postponed, seriesId, created }
+// Tâche : { id, title, date (null = boîte de réception), start, end, duration,
+//           priority (1 normale · 2 importante · 3 urgente), difficulty (1 facile · 2 moyenne · 3 difficile),
+//           subtasks: [{ id, title, done }], deadline, subject, done, doneAt, postponed, seriesId, created }
 //   - "bloc horaire" : start + end  → posé tel quel dans le planning
 //   - "avec durée"   : duration     → placé automatiquement dans les temps de travail
 //   - "simple"       : ni l'un ni l'autre → reste dans la liste
@@ -12,6 +13,7 @@ import { getData, update } from './storage.js';
 import { dateKey, addDays, parseKey, uid } from './util.js';
 
 export const PRIORITY = { 1: 'Normale', 2: 'Importante', 3: 'Urgente' };
+export const DIFFICULTY = { 1: 'Facile', 2: 'Moyenne', 3: 'Difficile' };
 const DAYS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
 const pad = n => String(n).padStart(2, '0');
 const hm = (h, m = 0) => `${pad(h)}:${pad(m)}`;
@@ -24,14 +26,24 @@ export function kindOf(t) {
 /* ---------- Ajout rapide ---------- */
 
 // "Travailler 3h de 14h à 17h demain !!" → { title, date, start, end, duration, priority, ... }
-export function parseQuick(input, ref = dateKey(), subjects = []) {
+export function parseQuick(input, ref = dateKey(), subjects = [], { defaultDate = ref } = {}) {
   let s = ` ${input.trim()} `;
-  const out = { priority: 1 };
-  const take = (re, fn) => { const m = s.match(re); if (m) { fn(m); s = s.replace(m[0], ' '); } return m; };
+  const out = { priority: 1, difficulty: 2 };
+
+  const take = (re, fn) => { const m = s.match(re.global ? re : new RegExp(re.source.replace('(?=\\s)', '(?=[\\s;])'), re.flags)); if (m) { fn(m); s = s.replace(m[0], ' '); } return m; };
 
   // priorité : "!!" ou "urgent" = urgente, "!" ou "important" = importante
   take(/\s(!{2,}|urgente?)(?=\s)/i, () => { out.priority = 3; });
   take(/\s(!|importante?)(?=\s)/i, () => { out.priority = Math.max(out.priority, 2); });
+
+  // difficulté : "difficile", "dur", "facile", "d1".."d3"
+  take(/\s(difficile|dur|hard|d3)(?=\s)/i, () => { out.difficulty = 3; });
+  take(/\s(facile|simple|easy|d1)(?=\s)/i, () => { out.difficulty = 1; });
+  take(/\s(moyen|moyenne|d2)(?=\s)/i, () => { out.difficulty = 2; });
+
+  // sans date : "plus tard", "un jour" → boîte de réception
+  let undated = false;
+  take(/\s(plus tard|un jour|boîte|inbox)(?=\s)/i, () => { undated = true; });
 
   // répétition
   take(/\s(chaque jour|tous les jours)(?=\s)/i, () => { out.rule = { type: 'day', interval: 1 }; });
@@ -80,8 +92,18 @@ export function parseQuick(input, ref = dateKey(), subjects = []) {
   if (out.start && !out.end) out.end = fromMin(toMin(out.start) + 60);
   if (out.start && out.end) out.duration = toMin(out.end) - toMin(out.start);
 
+  // sous-tâches (après avoir retiré les options) : "Fiche séries : lire le cours ; résumé ; exos"
+  const parts = s.split(';');
+  if (parts.length > 1 && parts[0].includes(':')) {
+    const cut = parts[0].lastIndexOf(':');
+    out.subtasks = [parts[0].slice(cut + 1), ...parts.slice(1)].map(x => x.trim()).filter(Boolean)
+      .map(title => ({ id: uid(), title, done: false }));
+    s = ` ${parts[0].slice(0, cut)} `;
+  }
+
   out.title = s.replace(/\s+/g, ' ').trim().replace(/^./, c => c.toUpperCase());
-  out.date ??= ref;
+  if (out.date === undefined) out.date = undated ? null : defaultDate;
+  if (out.rule && !out.date) out.date = ref;
   if (out.rule?.type === 'week' && !out.rule.days) out.rule.days = [parseKey(out.date).getDay()];
   return out;
 }
@@ -126,9 +148,10 @@ export function addTask(fields) {
 
 export function normalize(t) {
   return {
-    id: t.id, title: t.title, date: t.date || dateKey(),
+    id: t.id, title: t.title, date: t.date === undefined ? dateKey() : t.date,
     start: t.start || null, end: t.end || null, duration: t.duration || null,
-    priority: t.priority || 1, deadline: t.deadline || null, subject: t.subject || null,
+    priority: t.priority || 1, difficulty: t.difficulty || 2, subtasks: t.subtasks || [],
+    deadline: t.deadline || null, subject: t.subject || null,
     done: Boolean(t.done), doneAt: t.doneAt || null, postponed: t.postponed || 0,
     seriesId: t.seriesId || null, created: t.created || new Date().toISOString(),
   };
@@ -175,6 +198,12 @@ export function sortTasks(list) {
     a.done - b.done ||
     (a.start || '99').localeCompare(b.start || '99') ||
     b.priority - a.priority ||
+    (b.difficulty || 2) - (a.difficulty || 2) ||
     (a.deadline || '9999').localeCompare(b.deadline || '9999') ||
     a.created.localeCompare(b.created));
+}
+
+export function subProgress(t) {
+  const n = t.subtasks?.length || 0;
+  return n ? { done: t.subtasks.filter(x => x.done).length, n } : null;
 }

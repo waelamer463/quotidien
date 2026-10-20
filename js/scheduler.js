@@ -19,6 +19,7 @@ export function sortTasks(tasks, key) {
     urgent(a) - urgent(b) ||
     (urgent(a) === 0 ? a.deadline.localeCompare(b.deadline) : 0) ||
     b.priority - a.priority ||
+    (b.difficulty || 2) - (a.difficulty || 2) || // le plus difficile d'abord, quand on est frais
     (a.deadline || '9999').localeCompare(b.deadline || '9999') ||
     a.created.localeCompare(b.created));
 }
