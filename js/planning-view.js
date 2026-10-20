@@ -48,7 +48,6 @@ function renderDay(el) {
     ${weekStrip(p)}
     <div class="daynav">
       <strong>${dayLabel(day)}</strong>
-      <a class="icon-btn" href="#planning/reglages" aria-label="Réglages du planning">${icon('settings')}</a>
     </div>
 
     <div class="segmented three">
@@ -254,7 +253,7 @@ function row(it, nowMin, segs = []) {
 
 /* ---------- Réglages ---------- */
 
-function renderSettings(el) {
+export function renderSettings(el, { embedded = false } = {}) {
   const p = getData().planning;
   const base = prayerTimes(new Date(), p.place);
   const stepper = (key, value, label, unit = 'min') => `
@@ -268,7 +267,7 @@ function renderSettings(el) {
     </div>`;
 
   el.innerHTML = `
-    <a class="back" href="#planning">${icon('left')}Retour</a>
+    ${embedded ? '' : `<a class="back" href="#planning">${icon('left')}Retour</a>`}
 
     <div class="ess-head"><h2 class="section-title">Prières · ${esc(p.place.city)} (${p.place.method})</h2>
       <button class="link small" data-place>Lieu et méthode</button></div>
@@ -344,7 +343,7 @@ function renderSettings(el) {
     if (e.target.closest('[data-place]')) return editPlace(el);
     if (e.target.closest('[data-export]')) {
       const msg = await exportData();
-      renderSettings(el);
+      renderSettings(el, { embedded });
       return showMsg(el, msg);
     }
     const b = e.target.closest('[data-off],[data-key]');
@@ -359,7 +358,7 @@ function renderSettings(el) {
         else pl[a] = Math.max(0, pl[a] + d * step);
       }
     });
-    renderSettings(el);
+    renderSettings(el, { embedded });
   };
   el.onchange = async e => {
     if (e.target.matches('[data-import]') && e.target.files[0]) {
@@ -401,7 +400,7 @@ function editPlace(el) {
       const lng = parseFloat(String(f.get('lng')).replace(',', '.'));
       if (isNaN(lat) || isNaN(lng) || Math.abs(lat) > 66 || Math.abs(lng) > 180) return 'Coordonnées invalides.';
       update(d => { d.planning.place = { city: f.get('city').trim() || 'Ma ville', lat, lng, method: f.get('method') }; });
-      renderSettings(el);
+      renderSettings(el, { embedded });
     },
   });
   const sheet = document.querySelector('.sheet');

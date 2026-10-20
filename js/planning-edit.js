@@ -8,7 +8,7 @@ import { icon } from './icons.js';
 
 const DAYS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
 const shortDate = k => parseKey(k).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
-const back = `<a class="back" href="#planning/reglages">${icon('left')}Réglages</a>`;
+const back = `<a class="back" href="#reglages">${icon('left')}Réglages</a>`;
 
 /* ---------- Modèles de journée ---------- */
 

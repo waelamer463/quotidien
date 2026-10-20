@@ -56,11 +56,15 @@ export function render(el) {
       </div>
     </div>
 
-    <div class="metrics">
-      ${metric('kcal', 'Calories', l.kcal, `${fmt(e.kcalMin)}–${fmt(e.kcalMax)}`, kcalState(l.kcal, e),
-        Math.min(100, ((l.kcal || 0) / e.kcalMax) * 100), 'kcal')}
-      ${metric('pas', 'Pas', l.pas, `≥ ${fmt(e.steps)}`, (l.pas || 0) >= e.steps ? 'done' : 'todo',
-        Math.min(100, ((l.pas || 0) / e.steps) * 100), 'pas')}
+    <div class="rings">
+      ${ring('kcal', fmtK(l.kcal), 'Calories', `${fmt(e.kcalMin)}–${fmt(e.kcalMax)}`, kcalState(l.kcal, e), (l.kcal || 0) / e.kcalMax)}
+      ${ring('pas', fmtK(l.pas), 'Pas', `≥ ${fmt(e.steps)}`, (l.pas || 0) >= e.steps ? 'done' : 'todo', (l.pas || 0) / e.steps)}
+      ${ring('gym', l.salle ? null : `${gym.count}/${e.gymPerWeek}`, 'Salle',
+        l.salle ? `faite · ${gym.count}/${e.gymPerWeek} sem.` : 'touche si tu y es allé', gym.count >= e.gymPerWeek || l.salle ? 'done' : 'todo',
+        gym.count / e.gymPerWeek)}
+    </div>
+    <div class="gym-week">
+      ${gym.days.map(g => `<span class="${g.done ? 'on' : ''} ${g.key === day ? 'cur' : ''}">${'DLMMJVS'[parseKey(g.key).getDay()]}</span>`).join('')}
     </div>
     ${day === today ? `
       <div class="health-row">
@@ -69,27 +73,21 @@ export function render(el) {
       </div>
       ${importMsg ? `<p class="small muted import-msg">${esc(importMsg)}</p>` : ''}` : ''}
 
-    <div class="card gym ${l.salle ? 'done' : ''}">
-      <div class="gym-top">
-        <span><span class="name">Salle</span>
-          <span class="muted small">${gym.count} / ${e.gymPerWeek} cette semaine${gym.count >= e.gymPerWeek ? ', objectif atteint' : ''}</span></span>
-        <button class="gym-btn" data-act="gym" aria-pressed="${Boolean(l.salle)}">${icon('check')}<span>${l.salle ? 'Faite' : 'J\'y suis allé'}</span></button>
-      </div>
-      <div class="gym-week">
-        ${gym.days.map(g => `<span class="${g.done ? 'on' : ''} ${g.key === day ? 'cur' : ''}">${'DLMMJVS'[parseKey(g.key).getDay()]}</span>`).join('')}
-      </div>
-    </div>
-
     <div class="ess-head">
       <h2 class="section-title">To-do</h2>
       <span class="muted small">${todo.length ? `${todo.filter(t => t.done).length} / ${todo.length} faites` : ''}</span>
     </div>
     ${todoSection(day)}`;
   bindQuick(el, day, () => render(el));
+  requestAnimationFrame(() => requestAnimationFrame(() => el.querySelectorAll('.ring .v').forEach(v => {
+    v.style.strokeDashoffset = v.dataset.off;
+    lastOff[v.closest('.ring').dataset.metric] = v.dataset.off;
+  })));
 
   el.onclick = async ev => {
     if (handleTodoClick(ev, day, () => render(el))) return;
     const b = ev.target.closest('[data-act],[data-prayer],[data-metric]');
+    if (b?.dataset.metric === 'gym') { setLog(day, x => { if (x.salle) delete x.salle; else x.salle = true; }); return render(el); }
     if (!b) return;
     const a = b.dataset.act;
     if (a === 'prev') day = addDays(day, -1);
@@ -113,13 +111,24 @@ function conflictNote(items) {
       <span class="small muted">Touche pour voir les solutions proposées.</span></span>${icon('right', 'chev')}</a>` : '';
 }
 
-function metric(key, label, value, goal, state, pct, unit) {
+// Dernière position de chaque anneau : l'anneau s'anime de l'ancienne valeur vers la nouvelle.
+const lastOff = {};
+
+const fmtK = v => (!v ? '—' : v >= 10000 ? `${(v / 1000).toFixed(1).replace('.', ',')}k` : fmt(v));
+
+// Anneau d'un essentiel. value = texte au centre (null : coche).
+function ring(key, value, label, sub, state, ratio) {
+  const C = 2 * Math.PI * 32;
+  const off = C * (1 - Math.max(0, Math.min(1, ratio || 0)));
   return `
-    <button class="card metric ${state}" data-metric="${key}">
-      <span class="m-top"><span class="name">${label}</span><span class="muted small">${goal}</span></span>
-      <span class="m-val">${value ? fmt(value) : '—'} <small>${unit}</small></span>
-      <span class="bar"><i style="width:${pct}%"></i></span>
-      <span class="m-hint">${state === 'over' ? 'Au-dessus de la limite' : state === 'done' ? 'Objectif atteint' : 'Toucher pour saisir'}</span>
+    <button class="ring ${state}" data-metric="${key}" aria-label="${label} : ${value ?? 'faite'}">
+      <span class="ring-dial">
+        <svg viewBox="0 0 76 76"><circle class="t" cx="38" cy="38" r="32"/>
+          <circle class="v" cx="38" cy="38" r="32" data-off="${off}" style="stroke-dasharray:${C};stroke-dashoffset:${lastOff[key] ?? C}"/></svg>
+        <span class="ring-val ${value === null ? 'ok-ic' : ''}">${value === null ? icon('check') : value}</span>
+      </span>
+      <b>${label}</b>
+      <small>${state === 'over' ? 'au-dessus de la limite' : sub}</small>
     </button>`;
 }
 

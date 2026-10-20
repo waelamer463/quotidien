@@ -1,6 +1,8 @@
 import { getData, update, requestPersistence } from './storage.js';
 import * as todayView from './today-view.js';
 import * as statsView from './stats-view.js';
+import * as settingsView from './settings-view.js';
+import { applyTheme } from './theme.js';
 import * as planningView from './planning-view.js';
 import { icon } from './icons.js';
 import { renderSky } from './sky.js';
@@ -13,6 +15,17 @@ const views = {
   stats: {
     title: 'Stats',
     render: statsView.render,
+  },
+  examens: {
+    title: 'Examens',
+    render: el => {
+      el.innerHTML = `<div class="card"><h2>Mode examens</h2>
+        <p class="muted">Tes évaluations, ton profil de révision et ton plan automatique arrivent aux étapes E4 et E5.</p></div>`;
+    },
+  },
+  reglages: {
+    title: 'Réglages',
+    render: settingsView.render,
   },
   planning: {
     title: 'Planning',
@@ -34,10 +47,13 @@ function render() {
   document.getElementById('view-title').textContent = title || views[tab].title;
   const tabs = [...document.querySelectorAll('.tabbar a')];
   tabs.forEach(a => a.classList.toggle('active', a.dataset.tab === tab));
-  document.querySelector('.tabbar').style.setProperty('--i', tabs.findIndex(a => a.dataset.tab === tab));
+  const i = tabs.findIndex(a => a.dataset.tab === tab);
+  const bar = document.querySelector('.tabbar');
+  bar.style.setProperty('--i', Math.max(0, i));
+  bar.classList.toggle('no-pill', i < 0);
   window.scrollTo(0, 0);
   renderSky(document.querySelector('.topbar'));
-  update(d => { d.settings.lastTab = tab; });
+  if (tab !== 'reglages') update(d => { d.settings.lastTab = tab; });
 }
 
 function renderDate() {
@@ -45,6 +61,7 @@ function renderDate() {
   document.getElementById('today').textContent = txt.charAt(0).toUpperCase() + txt.slice(1);
 }
 
+applyTheme();
 document.querySelectorAll('[data-icon]').forEach(s => { s.outerHTML = icon(s.dataset.icon); });
 
 // Le ciel et la date se mettent à jour chaque minute (et au retour dans l'app).

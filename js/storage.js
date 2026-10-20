@@ -18,6 +18,7 @@ function defaults() {
     essentials: { kcalMin: 1600, kcalMax: 1900, steps: 7000, gymPerWeek: 3 },
     settings: {
       lastTab: 'aujourdhui',
+      theme: { dir: 'polaire', mode: 'sombre' },
     },
   };
 }
@@ -52,7 +53,7 @@ function load() {
       out.tasks = out.tasks.map(t => ({ start: null, end: null, postponed: 0, seriesId: null, doneAt: null,
         ...t, priority: t.priority || (t.difficulty === 3 ? 2 : 1) }));
     }
-    if (!['aujourdhui', 'planning', 'stats'].includes(out.settings.lastTab)) out.settings.lastTab = 'aujourdhui';
+    if (!['aujourdhui', 'planning', 'examens', 'stats'].includes(out.settings.lastTab)) out.settings.lastTab = 'aujourdhui';
     return out;
   } catch {
     return defaults();

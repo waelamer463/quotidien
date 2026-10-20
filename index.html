@@ -5,16 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Quotidien</title>
   <meta name="description" content="Tracker d'habitudes et planificateur de journée">
-  <meta name="theme-color" content="#F2F4F7" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0D1322" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#070B16">
+  <script>
+    // Thème appliqué avant l'affichage (évite un flash de la mauvaise couleur)
+    (() => {
+      let t = { dir: 'polaire', mode: 'sombre' };
+      try { t = { ...t, ...JSON.parse(localStorage.getItem('quotidien:theme')) }; } catch {}
+      const mode = t.mode === 'auto' ? (matchMedia('(prefers-color-scheme: light)').matches ? 'clair' : 'sombre') : t.mode;
+      document.documentElement.dataset.dir = t.dir;
+      document.documentElement.dataset.mode = mode;
+    })();
+  </script>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Quotidien">
-  <link rel="preload" href="fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/geist-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/geist-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -24,6 +34,7 @@
         <h1 id="view-title">Aujourd'hui</h1>
         <p id="today" class="muted"></p>
       </div>
+      <a class="icon-btn head-btn" href="#reglages" aria-label="Réglages"><span data-icon="settings"></span></a>
     </div>
     <div class="sky"></div>
   </header>
@@ -34,6 +45,7 @@
     <span class="tab-pill" aria-hidden="true"></span>
     <a href="#aujourdhui" data-tab="aujourdhui"><span data-icon="habits"></span><span>Aujourd'hui</span></a>
     <a href="#planning" data-tab="planning"><span data-icon="planning"></span><span>Planning</span></a>
+    <a href="#examens" data-tab="examens"><span data-icon="course"></span><span>Examens</span></a>
     <a href="#stats" data-tab="stats"><span data-icon="stats"></span><span>Stats</span></a>
   </nav>
 
