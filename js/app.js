@@ -49,11 +49,16 @@ function route() {
   return views[tab] ? { tab, params } : { tab: getData().settings.lastTab, params: [] };
 }
 
+let lastHash = null;
+
 function render() {
   const { tab, params } = route();
   const el = document.getElementById('view');
   el.onclick = el.onkeydown = el.onchange = null;
   const title = views[tab].render(el, params);
+  // petite transition quand on change d'écran (pas lors d'un simple rafraîchissement)
+  if (lastHash !== null && lastHash !== location.hash) { el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter'); }
+  lastHash = location.hash;
   document.getElementById('view-title').textContent = title || views[tab].title;
   const tabs = [...document.querySelectorAll('.tabbar a')];
   tabs.forEach(a => a.classList.toggle('active', a.dataset.tab === tab));

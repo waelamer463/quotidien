@@ -42,8 +42,8 @@ export function gridHTML(items, { nowMin = -1, segments = [], conflicts = new Se
   }).join('');
 
   const lines = prayers.map((it, idx) => `
-    <button class="g-prayer ${it.deferred ? 'deferred' : ''}" data-p="${idx}" style="top:${y(it.start)}px">
-      <span>${it.label} ${toHHMM(it.start)}${it.deferred ? ' · rattrapée' : ''}</span>
+    <button class="g-prayer ${it.deferred ? 'deferred' : ''}" data-p="${idx}" style="top:${y(it.start)}px" aria-label="${it.label} ${toHHMM(it.start)}${it.deferred ? ', rattrapée' : ''}">
+      <span>${it.deferred ? '↻ ' : ''}${it.label} ${toHHMM(it.start)}</span>
     </button>`).join('');
 
   const now = nowMin >= from && nowMin <= to ? `<div class="g-now" style="top:${y(nowMin)}px"></div>` : '';

@@ -24,6 +24,10 @@ export function openSheet({ title, body, onSave, onDelete, saveLabel = 'Enregist
   document.body.classList.add('no-scroll');
 
   const form = wrap.querySelector('form');
+  // iPhone : garde le champ touché visible au-dessus du clavier
+  form.addEventListener('focusin', e => {
+    if (e.target.matches('input, select, textarea')) setTimeout(() => e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }), 320);
+  });
   const close = () => { wrap.remove(); document.body.classList.remove('no-scroll'); };
 
   wrap.addEventListener('click', e => {

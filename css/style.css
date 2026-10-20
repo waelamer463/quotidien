@@ -570,7 +570,7 @@ body.no-scroll { overflow: hidden; }
   animation: fade .2s var(--ease);
 }
 .sheet {
-  width: 100%; max-width: 640px; max-height: 90vh; overflow-y: auto;
+  width: 100%; max-width: 640px; max-height: 90vh; max-height: 90dvh; overflow-y: auto; overscroll-behavior: contain;
   background: var(--bg); border-radius: 26px 26px 0 0;
   padding: 10px 18px calc(22px + env(safe-area-inset-bottom));
   animation: up .32s var(--ease);
@@ -1296,3 +1296,59 @@ button.task.method { width: 100%; border: 1px solid var(--edge); font: inherit; 
 .wiz-done b { font-weight: 600; margin-right: 6px; }
 .wiz-stop { align-self: center; padding: 6px; }
 .wiz-open { width: 100%; margin-top: 10px; }
+
+/* ---------- Peaufinage ---------- */
+/* boîte de confirmation */
+.dialog-backdrop { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 24px;
+  background: rgba(3, 6, 14, .55); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); animation: fade .16s var(--ease); }
+.dialog-backdrop.out { opacity: 0; transition: opacity .16s; }
+.dialog { width: 100%; max-width: 340px; background: var(--solid); border: 1px solid var(--edge); border-radius: 24px; padding: 20px 18px 16px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, .45); animation: pop .22s var(--pop, var(--ease)); }
+.dialog strong { display: block; font-size: 17px; }
+.dialog p { margin: 6px 0 0; color: var(--muted); font-size: 14.5px; }
+.dialog-actions { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px; margin-top: 18px; }
+.dialog-actions .btn { margin: 0; }
+.btn.danger-fill { background: var(--danger); color: #fff; box-shadow: none !important; }
+@keyframes pop { from { transform: scale(.94); opacity: 0; } }
+
+/* états vides */
+.empty-state { display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 20px; border: 1px dashed var(--edge); background: color-mix(in srgb, var(--surface) 60%, transparent); margin: 8px 0; }
+.empty-state b { display: block; font-size: 15px; font-weight: 600; }
+.empty-state p { margin: 3px 0 0; color: var(--muted); font-size: 13.5px; }
+.empty-state .btn { margin: 10px 0 0; }
+.es-mascot:empty { display: none; }
+
+/* transition entre écrans */
+.view.enter { animation: viewIn .2s var(--ease); }
+@keyframes viewIn { from { opacity: 0; transform: translateY(6px); } }
+
+/* bouton occupé */
+.btn.busy { opacity: .6; pointer-events: none; }
+.daynav.compact { justify-content: flex-start; margin: -2px 0 12px; }
+.day-back { display: inline-flex; align-items: center; gap: 2px; padding: 6px 12px 6px 6px; border: 0; border-radius: 999px; background: var(--surface); color: var(--muted); font: 600 13px var(--sans); cursor: pointer; }
+.day-back .ic { width: 16px; height: 16px; }
+.mini-card { padding: 12px 14px; margin-top: 10px; }
+.mini-card .gym-week, .mini-card .health-row { margin-top: 8px; }
+.mini-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; color: var(--muted); }
+.mini-head b { color: var(--text); font-weight: 600; }
+.banner .btn { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.load-note { margin: 10px 4px 0; }
+/* grille : pastilles de prière compactes, poignées discrètes, pas de menu iOS */
+.g-prayer span { top: -9px; padding: 0 7px; font-size: 10.5px; line-height: 17px; box-shadow: 0 0 0 2px var(--bg); }
+.b-grip::after { opacity: .35; transition: opacity .15s; }
+.brick.dragging .b-grip::after, .brick:hover .b-grip::after { opacity: 1; }
+.brick.tiny .b-grip::after { display: none; }
+.grid, .g-prayer, .task.swipe { -webkit-touch-callout: none; }
+body.no-select { -webkit-touch-callout: none; }
+.brick .b-label { padding-right: 4px; }
+.past-row .grow { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.past-row .grow > span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hero-label { white-space: nowrap; }
+.hero-top > div:first-child { flex: none; }
+.tile > span:not(.gym-weeks) { display: block; }
+/* chrono : matières sur une ligne qui défile */
+.subj-pick { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -20px 12px; padding: 2px 20px; scroll-padding: 20px; }
+.subj-pick::-webkit-scrollbar { display: none; }
+.subj-pick .chip { flex: none; }
+.g-prayer span { right: 4px; }
+.dialog:focus { outline: none; }

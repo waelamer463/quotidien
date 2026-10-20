@@ -6,6 +6,7 @@ import { getData, update } from './storage.js';
 import { parseKey, addDays, esc, uid } from './util.js';
 import { openSheet } from './sheet.js';
 import { toMin, toHHMM } from './planning-model.js';
+import { tell } from './dialog.js';
 
 const KINDS = ['CM', 'TD', 'TP', 'CM-TD'];
 const WEEKDAYS = ['dimanches', 'lundis', 'mardis', 'mercredis', 'jeudis', 'vendredis', 'samedis'];
@@ -50,7 +51,7 @@ function step(key, slots, done) {
       label: '✓ C\'est le dernier cours',
       onClick: () => {
         const s = read(new FormData(form), prev);
-        if (typeof s === 'string') { alert(s); return step(key, slots, done); }
+        if (typeof s === 'string') { tell('Cours incomplet', s).then(() => step(key, slots, done)); return; }
         scope(key, [...slots, s], done);
       },
     },

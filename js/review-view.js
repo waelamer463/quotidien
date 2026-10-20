@@ -9,6 +9,13 @@ import { measure, reviewWeek, suggestGoal, setGoal, goalOf, goalProgress, examsS
 import { weekStart } from './essentials.js';
 
 const dm = k => parseKey(k).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' });
+// « 12 – 18 octobre », ou « 27 oct. – 2 nov. » à cheval sur deux mois
+function weekLabel(mon) {
+  const a = parseKey(mon), b = parseKey(addDays(mon, 6));
+  return a.getMonth() === b.getMonth()
+    ? `${a.getDate()} – ${b.getDate()} ${b.toLocaleDateString('fr-FR', { month: 'long' })}`
+    : `${a.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} – ${b.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`;
+}
 const pct = (a, b) => (b ? Math.round(a / b * 100) : 0);
 
 export function render(el, [arg]) {
@@ -32,7 +39,7 @@ export function render(el, [arg]) {
   el.innerHTML = `
     <div class="daynav">
       <a class="icon-btn" href="#bilan/${addDays(mon, -7)}" aria-label="Semaine précédente">${icon('left')}</a>
-      <strong>Du ${dm(mon)} au ${dm(addDays(mon, 6))}</strong>
+      <strong>${weekLabel(mon)}</strong>
       ${next <= weekStart(today) ? `<a class="icon-btn" href="#bilan/${next}" aria-label="Semaine suivante">${icon('right')}</a>` : '<span class="icon-btn" aria-hidden="true"></span>'}
     </div>
 

@@ -5,6 +5,7 @@ import { parseKey, esc, uid } from './util.js';
 import { DAY_TYPES, KINDS } from './planning-model.js';
 import { openSheet, activityFields, readActivity } from './sheet.js';
 import { icon } from './icons.js';
+import { ask, tell } from './dialog.js';
 
 const DAYS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
 const shortDate = k => parseKey(k).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -158,9 +159,11 @@ export function renderTimetable(el, id) {
     } else if ('new' in ds) {
       newTimetable(el, c);
     } else if ('deleteTt' in ds) {
-      if (!confirm(`Supprimer « ${c.name} » ?`)) return;
-      update(d => { d.planning.courses = d.planning.courses.filter(x => x.id !== c.id); });
-      location.hash = '#planning/edt';
+      ask({ title: `Supprimer « ${c.name} » ?`, text: 'Les jours concernés redeviendront des jours sans cours.', ok: 'Supprimer', danger: true }).then(yes => {
+        if (!yes) return;
+        update(d => { d.planning.courses = d.planning.courses.filter(x => x.id !== c.id); });
+        location.hash = '#planning/edt';
+      });
     }
   };
   return 'Emploi du temps';
@@ -258,8 +261,8 @@ export function renderSubjects(el) {
         });
         renderSubjects(el);
       },
-      onDelete: m && (() => {
-        if (used(m.id) && !confirm(`${m.name} a ${used(m.id)} cours. Les supprimer aussi ?`)) return;
+      onDelete: m && (async () => {
+        if (used(m.id) && !await ask({ title: `Supprimer ${m.name} ?`, text: `Ses ${used(m.id)} cours dans l'emploi du temps seront aussi supprimés.`, ok: 'Supprimer', danger: true })) return;
         update(d => {
           d.planning.subjects = d.planning.subjects.filter(x => x.id !== m.id);
           d.planning.courses.forEach(c => { c.slots = c.slots.filter(s => s.subject !== m.id); });

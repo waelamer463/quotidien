@@ -8,6 +8,7 @@ import { schedule, nextWorkDay } from './scheduler.js';
 import { startChrono } from './chrono-view.js';
 import { PRIORITY, DIFFICULTY, kindOf, parseQuick, addTask, normalize, materialize, ruleLabel, sortTasks, subProgress } from './todo-model.js';
 import { toast } from './toast.js';
+import { emptyState } from './empty.js';
 
 export const dur = m => (m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? String(m % 60).padStart(2, '0') : ''}` : `${m} min`);
 const hm = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
@@ -31,13 +32,16 @@ export function todoSection(day) {
     body = `
       ${late.length ? banner('late', `${late.length} tâche${late.length > 1 ? 's' : ''} en retard`,
         late.map(t => esc(t.title)).join(', '), [['late-all', 'Tout mettre aujourd\'hui'], ['late-pick', 'Choisir']]) : ''}
-      ${sched.overflow.length && !p.days[day]?.overflowOk ? banner('warn',
-        `Tout ne rentre pas : ${dur(sched.overflow.reduce((n, o) => n + o.left, 0))} de trop`,
-        sched.overflow.map(o => `${esc(o.task.title)} (${dur(o.left)})`).join(', '),
-        [['over-next', `Reporter ${short(nextWorkDay(p, day))}`], ['over-pick', 'Choisir'], ['over-keep', 'Laisser']]) : ''}
+      ${sched.overflow.length && !p.days[day]?.overflowOk ? (sched.capacity === 0 && day === today
+        ? banner('', 'Ta journée de travail est finie',
+          `${dur(sched.overflow.reduce((n, o) => n + o.left, 0))} de tâches restent : ${sched.overflow.map(o => esc(o.task.title)).join(', ')}.`,
+          [['over-next', `Reporter ${short(nextWorkDay(p, day))}`], ['over-keep', 'Laisser']])
+        : banner('warn', `Tout ne rentre pas : ${dur(sched.overflow.reduce((n, o) => n + o.left, 0))} de trop`,
+          sched.overflow.map(o => `${esc(o.task.title)} (${dur(o.left)})`).join(', '),
+          [['over-next', `Reporter ${short(nextWorkDay(p, day))}`], ['over-pick', 'Choisir'], ['over-keep', 'Laisser']])) : ''}
       ${list.length ? `<div class="tasks">${list.map(t => row(t, sched)).join('')}</div>`
-        : '<p class="muted small empty">Rien de prévu. Ajoute une tâche ci-dessus.</p>'}
-      ${sched.load ? `<p class="small muted load">${dur(sched.load)} de tâches à placer · ${dur(sched.capacity)} de travail dispo</p>` : ''}`;
+        : emptyState('Rien de prévu', 'Écris une tâche ci-dessus, avec une durée pour qu\'elle se place dans ton planning.')}
+      ${sched.load && sched.capacity ? `<p class="small muted load-note">${dur(sched.load)} de tâches avec durée · ${dur(sched.capacity)} de travail encore disponible</p>` : ''}`;
   } else if (tab === 'semaine') {
     let html = '';
     for (let i = 1; i <= 7; i++) {
@@ -46,7 +50,7 @@ export function todoSection(day) {
       const list = sortTasks(getData().tasks.filter(t => t.date === k && !t.done));
       if (list.length) html += `<h3 class="group">${dayLabel(k)}</h3><div class="tasks">${list.map(t => row(t)).join('')}</div>`;
     }
-    body = html || '<p class="muted small empty">Rien de prévu dans les 7 prochains jours.</p>';
+    body = html || emptyState('Semaine libre', 'Rien de prévu dans les 7 prochains jours.');
   } else if (tab === 'plustard') {
     const limit = addDays(today, 7);
     const groups = {};
@@ -56,7 +60,7 @@ export function todoSection(day) {
     const { series } = getData();
     body = Object.entries(groups).map(([k, list]) => `
       <h3 class="group">${dayLabel(k)}</h3><div class="tasks">${list.map(t => row(t)).join('')}</div>`).join('')
-      || '<p class="muted small empty">Rien de prévu au-delà de 7 jours.</p>';
+      || emptyState('Rien au-delà de 7 jours', 'Écris par exemple « Projet pour le 15/12 ».');
     if (series.length) {
       body += `<h3 class="group">Répétitions</h3><div class="tasks">${series.map(x => `
         <button class="task series" data-series="${x.id}">
@@ -69,12 +73,12 @@ export function todoSection(day) {
     const inbox = sortTasks(tasks.filter(t => !t.done && !t.date));
     body = inbox.length ? `<p class="small muted empty">Glisse à gauche pour planifier aujourd'hui, ou touche une tâche pour lui donner un jour.</p>
       <div class="tasks">${inbox.map(t => row(t)).join('')}</div>`
-      : '<p class="muted small empty">Boîte vide. Ajoute ici tes idées et tâches sans date (ou écris « plus tard »).</p>';
+      : emptyState('Boîte vide', 'Note ici tes idées et tâches sans date (ou écris « plus tard » dans le champ).');
   }
 
   return `
     <form class="quick" data-quick>
-      <input name="q" autocomplete="off" enterkeyhint="done" placeholder="${tab === 'inbox' ? 'Noter une idée, une tâche sans date…' : 'Ajouter… ex. « Exos Analyse 2h !! vendredi »'}" aria-label="Ajouter une tâche">
+      <input name="q" autocomplete="off" enterkeyhint="done" placeholder="${tab === 'inbox' ? 'Noter une idée sans date…' : 'Ex. Exos Analyse 2h vendredi'}" aria-label="Ajouter une tâche">
       <button class="icon-btn" type="submit" aria-label="Ajouter">${icon('plus')}</button>
     </form>
     <div class="quick-preview" hidden></div>

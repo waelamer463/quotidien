@@ -4,6 +4,9 @@ import { getData, update } from './storage.js';
 import { dateKey, esc } from './util.js';
 import { icon } from './icons.js';
 import { openSheet } from './sheet.js';
+import { ask, tell } from './dialog.js';
+import { toast } from './toast.js';
+import { emptyState } from './empty.js';
 import { running, elapsedMs, start, pause, resume, stop, cancel, addManual, removeSession,
   minutesOn, minutesBySubject, weekRange, fmtClock, fmtMin } from './chrono.js';
 
@@ -13,8 +16,8 @@ const R = 52, C = 2 * Math.PI * R;
 const subjectOf = id => getData().planning.subjects.find(s => s.id === id);
 
 // Lance le chrono puis ouvre la page Chrono.
-export function startChrono(opts) {
-  if (running() && !confirm('Un chrono tourne déjà. L\'arrêter et en lancer un nouveau ?')) return;
+export async function startChrono(opts) {
+  if (running() && !await ask({ title: 'Un chrono tourne déjà', text: 'L\'arrêter (la session est enregistrée) et lancer celui-ci ?', ok: 'Lancer' })) return;
   if (running()) stop();
   start(opts);
   location.hash = '#chrono';
@@ -45,7 +48,7 @@ export function render(el) {
             <span class="small muted mono">${s.start}–${s.end} · ${fmtMin(s.minutes)}${s.planned ? ` / ${fmtMin(s.planned)} prévu` : ''}${diff !== null ? ` (${diff > 0 ? '+' : ''}${diff} min)` : ''}</span></span>
           <button class="icon-btn sm-btn" data-del-session="${s.id}" aria-label="Supprimer">${icon('close')}</button>
         </div>`;
-    }).join('')}</div>` : '<p class="small muted empty">Aucune session aujourd\'hui.</p>'}
+    }).join('')}</div>` : emptyState('Aucune session aujourd\'hui', 'Lance le chrono ci-dessus, ou depuis le ▶ d\'une tâche.')}
     <button class="btn secondary add-act" data-manual>${icon('plus')}Ajouter une session oubliée</button>
 
     <div class="ess-head"><h2 class="section-title">Cette semaine</h2><a class="link small" href="#planning/matieres">Objectifs</a></div>
@@ -64,14 +67,18 @@ export function render(el) {
       }).join('')}
     </div>`;
 
-  el.onclick = e => {
+  el.onclick = async e => {
     const t = e.target.closest('[data-act],[data-del-session],[data-manual],[data-pick-subject]');
     if (!t) return;
     if (t.dataset.pickSubject !== undefined) {
       el.querySelectorAll('[data-pick-subject]').forEach(x => x.classList.toggle('on', x === t));
       return;
     }
-    if (t.dataset.delSession) { if (confirm('Supprimer cette session ?')) removeSession(t.dataset.delSession); }
+    if (t.dataset.delSession) {
+      const s = getData().sessions.find(x => x.id === t.dataset.delSession);
+      removeSession(s.id);
+      toast('Session supprimée', () => { update(d => { d.sessions.push(s); }); render(el); });
+    }
     else if ('manual' in t.dataset) return manualSheet(() => render(el));
     else if (t.dataset.act === 'start') {
       const subj = el.querySelector('[data-pick-subject].on')?.dataset.pickSubject || null;
@@ -80,7 +87,7 @@ export function render(el) {
     else if (t.dataset.act === 'pause') pause();
     else if (t.dataset.act === 'resume') resume();
     else if (t.dataset.act === 'stop') return finish(() => render(el));
-    else if (t.dataset.act === 'cancel') { if (confirm('Annuler ce chrono sans l\'enregistrer ?')) cancel(); }
+    else if (t.dataset.act === 'cancel') { if (await ask({ title: 'Annuler ce chrono ?', text: 'Le temps compté ne sera pas enregistré.', ok: 'Annuler le chrono', cancel: 'Continuer', danger: true })) cancel(); }
     render(el);
     renderBar();
   };

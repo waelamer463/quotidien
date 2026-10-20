@@ -30,11 +30,15 @@ export function render(el) {
   const todo = tasks.filter(t => t.date === day);
 
   el.innerHTML = `
+    ${day === today ? `
+    <div class="daynav compact">
+      <button class="day-back" data-act="prev" aria-label="Voir hier">${icon('left')}Hier</button>
+    </div>` : `
     <div class="daynav">
       <button class="icon-btn" data-act="prev" aria-label="Jour précédent">${icon('left')}</button>
-      <strong>${dayLabel(day)}</strong>
-      <button class="icon-btn" data-act="next" aria-label="Jour suivant" ${day === today ? 'disabled' : ''}>${icon('right')}</button>
-    </div>
+      <button class="link small" data-act="today">Revenir à aujourd'hui</button>
+      <button class="icon-btn" data-act="next" aria-label="Jour suivant">${icon('right')}</button>
+    </div>`}
 
     ${day === today ? nowCard(built.items) : ''}
     ${day === today ? upcoming().filter(x => daysUntil(x.date) <= 60).slice(0, 2).map(x => examCard(x, true)).join('') : ''}
@@ -68,19 +72,25 @@ export function render(el) {
       ${ring('kcal', fmtK(l.kcal), 'Calories', `${fmt(e.kcalMin)}–${fmt(e.kcalMax)}`, kcalState(l.kcal, e), (l.kcal || 0) / e.kcalMax)}
       ${ring('pas', fmtK(l.pas), 'Pas', `≥ ${fmt(e.steps)}`, (l.pas || 0) >= e.steps ? 'done' : 'todo', (l.pas || 0) / e.steps)}
       ${ring('gym', l.salle ? null : `${gym.count}/${e.gymPerWeek}`, 'Salle',
-        l.salle ? `faite · ${gym.count}/${e.gymPerWeek} sem.` : 'touche si tu y es allé', gym.count >= e.gymPerWeek || l.salle ? 'done' : 'todo',
+        l.salle ? 'faite aujourd\'hui' : 'touche pour cocher', gym.count >= e.gymPerWeek || l.salle ? 'done' : 'todo',
         gym.count / e.gymPerWeek)}
     </div>
     ${sleepCard(l, e)}
-    <div class="gym-week">
-      ${gym.days.map(g => `<span class="${g.done ? 'on' : ''} ${g.key === day ? 'cur' : ''}">${'DLMMJVS'[parseKey(g.key).getDay()]}</span>`).join('')}
+    <div class="card mini-card">
+      <div class="mini-head"><span>Salle cette semaine</span><b class="mono">${gym.count}/${e.gymPerWeek}</b></div>
+      <div class="gym-week">
+        ${gym.days.map(g => `<span class="${g.done ? 'on' : ''} ${g.key === day ? 'cur' : ''}">${'DLMMJVS'[parseKey(g.key).getDay()]}</span>`).join('')}
+      </div>
     </div>
     ${day === today ? `
-      <div class="health-row">
-        <a class="btn small secondary" href="${SHORTCUT_URL}">${icon('heart')}Lire Santé</a>
-        <button class="btn small secondary" data-act="paste">${icon('paste')}Coller</button>
-      </div>
-      ${importMsg ? `<p class="small muted import-msg">${esc(importMsg)}</p>` : ''}` : ''}
+      <div class="card mini-card">
+        <div class="mini-head"><span>Pas et calories depuis Santé</span></div>
+        <div class="health-row">
+          <a class="btn small secondary" href="${SHORTCUT_URL}">${icon('heart')}Lire Santé</a>
+          <button class="btn small secondary" data-act="paste">${icon('paste')}<span>Coller</span></button>
+        </div>
+        ${importMsg ? `<p class="small muted import-msg">${esc(importMsg)}</p>` : ''}
+      </div>` : ''}
 
     <div class="ess-head">
       <h2 class="section-title">To-do</h2>
@@ -103,12 +113,14 @@ export function render(el) {
     const a = b.dataset.act;
     if (a === 'prev') day = addDays(day, -1);
     else if (a === 'next') day = addDays(day, 1);
+    else if (a === 'today') day = today;
     else if (b.dataset.prayer) cyclePrayer(day, b.dataset.prayer, b.dataset.late === '1');
     else if (a === 'gym') setLog(day, x => { if (x.salle) delete x.salle; else x.salle = true; });
     else if (b.dataset.metric) return editMetric(el, b.dataset.metric);
     else if (a === 'settings') return editGoals(el);
     else if (a === 'paste') {
-      try { runImport(await navigator.clipboard.readText()); } catch { return manualPaste(el); }
+      b.classList.add('busy'); b.lastChild.textContent = 'Lecture…';
+      try { runImport(await navigator.clipboard.readText()); } catch { b.classList.remove('busy'); b.lastChild.textContent = 'Coller'; return manualPaste(el); }
     }
     render(el);
   };

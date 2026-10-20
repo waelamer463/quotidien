@@ -284,8 +284,8 @@ export function renderSettings(el, { embedded = false } = {}) {
   el.innerHTML = `
     ${embedded ? '' : `<a class="back" href="#planning">${icon('left')}Retour</a>`}
 
-    <div class="ess-head"><h2 class="section-title">Prières · ${esc(p.place.city)} (${p.place.method})</h2>
-      <button class="link small" data-place>Lieu et méthode</button></div>
+    <div class="ess-head"><h2 class="section-title">Prières</h2>
+      <button class="link small" data-place>${esc(p.place.city)} · ${p.place.method}</button></div>
     <div class="card">
       <p class="small muted" style="margin-bottom:8px">Décale chaque prière pour coller aux horaires de ta mosquée.</p>
       ${PRAYERS.map(n => {
@@ -356,7 +356,9 @@ export function renderSettings(el, { embedded = false } = {}) {
 
   el.onclick = async e => {
     if (e.target.closest('[data-place]')) return editPlace(el);
-    if (e.target.closest('[data-export]')) {
+    const ex = e.target.closest('[data-export]');
+    if (ex) {
+      ex.classList.add('busy'); ex.textContent = 'Préparation…';
       const msg = await exportData();
       renderSettings(el, { embedded });
       return showMsg(el, msg);
@@ -377,7 +379,10 @@ export function renderSettings(el, { embedded = false } = {}) {
   };
   el.onchange = async e => {
     if (e.target.matches('[data-import]') && e.target.files[0]) {
+      const lab = e.target.closest('label');
+      lab.classList.add('busy'); lab.firstChild.textContent = 'Lecture…';
       const err = await importFile(e.target.files[0]);
+      lab.classList.remove('busy'); lab.firstChild.textContent = 'Importer';
       if (err) showMsg(el, err);
       e.target.value = '';
       return;

@@ -2,6 +2,7 @@
 
 import { getData, update } from './storage.js';
 import { dateKey } from './util.js';
+import { ask } from './dialog.js';
 
 const KEY = 'quotidien:data';
 
@@ -42,7 +43,7 @@ export async function importFile(file) {
     return 'Ce fichier n\'est pas une sauvegarde Quotidien.';
   }
   const when = data.settings?.lastExport ? ` du ${data.settings.lastExport}` : '';
-  if (!confirm(`Remplacer toutes les données de l'app par la sauvegarde${when} ?`)) return 'Import annulé.';
+  if (!await ask({ title: 'Remplacer tes données ?', text: `Toutes les données de l'app seront remplacées par la sauvegarde${when}.`, ok: 'Remplacer', danger: true })) return 'Import annulé.';
   localStorage.setItem(KEY, JSON.stringify(data));
   location.reload();
   return null;

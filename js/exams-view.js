@@ -8,6 +8,8 @@ import { EXAM_TYPES, FORMATS } from './revision-defaults.js';
 import { daysUntil, countdownLabel, upcoming, past, readiness, saveExam, newExam, setMastery, examName } from './exams-model.js';
 import { regenerate, planStats, windowOf, calibrate } from './revision-plan.js';
 import { fmtMin } from './chrono.js';
+import { emptyState } from './empty.js';
+import { ask, tell } from './dialog.js';
 
 const shortDate = k => parseKey(k).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
 
@@ -34,15 +36,12 @@ function renderList(el) {
   const done = past();
   el.innerHTML = `
     ${next.length ? next.map(examCard).join('') : `
-      <div class="card empty-card">
-        <h2>Aucune évaluation à venir</h2>
-        <p class="muted">Ajoute tes partiels, CC et TP notés : l'app suivra ta préparation chapitre par chapitre.</p>
-      </div>`}
+      ${emptyState('Aucune évaluation à venir', 'Ajoute tes partiels, CC et TP notés : l\'app prépare un plan de révision chapitre par chapitre.')}`}
     <a class="btn" href="#examens/nouveau">${icon('plus')}Nouvelle évaluation</a>
 
     ${done.length ? `<h2 class="section-title">Passées</h2>
       <div class="tasks">${done.map(e => `
-        <a class="task row-link" href="#examens/${e.id}">
+        <a class="task row-link past-row" href="#examens/${e.id}">
           <span class="grow"><span class="task-title">${esc(EXAM_TYPES[e.type])} · ${esc(examName(e))}</span>
             <span class="small muted">${longDate(e.date)} · coef. ${e.coef}</span></span>
           <b class="mono grade ${e.grade === null ? 'none' : ''}">${e.grade === null ? 'note ?' : `${String(e.grade).replace('.', ',')}/${e.gradeMax}`}</b>
@@ -210,7 +209,7 @@ function renderExam(el, e) {
     el.querySelector('[data-ch-add] input').focus();
   };
 
-  el.onclick = ev => {
+  el.onclick = async ev => {
     const t = ev.target.closest('[data-m],[data-fear],[data-del-ch],[data-act],[data-open-day]');
     if (!t) return;
     const again = (replan = true) => { if (replan && !passed) regenerate(); renderExam(el, getData().exams.find(x => x.id === e.id)); };
@@ -222,7 +221,7 @@ function renderExam(el, e) {
     if (t.dataset.act === 'plan-toggle') { update(d => { const x = d.exams.find(y => y.id === e.id); x.planOff = !x.planOff; }); return again(); }
     if (t.dataset.act === 'edit') return renderForm(el, e);
     if (t.dataset.act === 'delete') {
-      if (!confirm(`Supprimer « ${examName(e)} » ?`)) return;
+      if (!await ask({ title: `Supprimer « ${examName(e)} » ?`, text: 'Ses chapitres et son plan de révision seront supprimés.', ok: 'Supprimer', danger: true })) return;
       update(d => { d.exams = d.exams.filter(x => x.id !== e.id); });
       regenerate();
       location.hash = '#examens';
@@ -255,7 +254,7 @@ function planCard(e) {
     <div class="card plan-card">
       <div class="plan-head"><b>Plan de révision</b><span class="mono small muted">${st.done}/${st.n} séances</span></div>
       <span class="bar"><i style="width:${st.minutes ? Math.round(st.doneMin / st.minutes * 100) : 0}%"></i></span>
-      <p class="small muted">${fmtMin(st.doneMin)} faites sur ${fmtMin(st.minutes)} · à partir du ${shortDate(w.from)}, jusqu'au ${shortDate(w.to)}</p>
+      <p class="small muted">${st.doneMin ? `${fmtMin(st.doneMin)} faites sur ${fmtMin(st.minutes)}` : `Rien de fait encore · ${fmtMin(st.minutes)} prévues`} · du ${shortDate(w.from)} au ${shortDate(w.to)}</p>
       ${e.planOver ? `<p class="small warn-text">${fmtMin(e.planOver)} de révision ne rentrent pas dans ton temps de travail. Commence plus tôt (profil) ou augmente la part réservée aux révisions.</p>` : ''}
       ${!e.chapters.length ? '<p class="small muted">Ajoute des chapitres pour générer le plan.</p>' : ''}
       ${days.map(k => `
@@ -288,8 +287,8 @@ function renderProfile(el, firstTime) {
         <p class="small muted">Les plans enchaînent les méthodes dans cet ordre : ${methods.filter(m => m.active).sort((a, b) => a.stage - b.stage).map(m => esc(m.name)).join(' → ')}.</p>
       </fieldset>
       <div class="grid2">
-        <label>Réviser un partiel ${pick('sp', [7, 10, 14, 21, 30], p.startDays.partiel, v => `${v} jours avant`)}</label>
-        <label>Réviser un CC / DS ${pick('sc', [3, 5, 7, 10, 14], p.startDays.cc, v => `${v} jours avant`)}</label>
+        <label>Réviser un partiel ${pick('sp', [7, 10, 14, 21, 30], p.startDays.partiel, v => `${v} j avant`)}</label>
+        <label>Réviser un CC / DS ${pick('sc', [3, 5, 7, 10, 14], p.startDays.cc, v => `${v} j avant`)}</label>
         <label>Durée d'une session ${pick('sm', [45, 60, 90, 120, 150, 180], p.sessionMin, h)}</label>
         <label>Passages / chapitre ${pick('ps', [2, 3, 4, 5, 6], p.passes)}</label>
       </div>
@@ -315,7 +314,7 @@ function renderProfile(el, firstTime) {
     ev.preventDefault();
     const f = new FormData(ev.target);
     const active = new Set(f.getAll('m'));
-    if (!active.size) return alert('Garde au moins une méthode.');
+    if (!active.size) return tell('Garde au moins une méthode', 'Le plan de révision a besoin d\'au moins une méthode.');
     update(d => {
       const r = d.revision;
       r.methods.forEach(m => { m.active = active.has(m.id); });
