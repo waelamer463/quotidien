@@ -19,6 +19,7 @@ export function revisionDefaults() {
       passes: 4,            // passages par chapitre
       share: 0.7,           // part du temps de travail réservée aux révisions
       spacing: [1, 3, 7, 14], // répétition espacée (jours)
+      calib: 1,             // ajusté par tes notes : > 1 = plus tôt et plus de passages
     },
     // Méthodes = briques configurables. stage : ordre habituel (1 = en premier).
     // weight évolue avec tes retours (efficace / moyen / inutile).

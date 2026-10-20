@@ -85,11 +85,13 @@ export function schedule(p, tasks, key, day = buildDay(p, key)) {
 
   segments.sort((a, b) => a.start - b.start);
   const capacity = work.reduce((n, s) => n + s.end - s.start, 0);
+  const main = work.filter(s => !s.optional).reduce((n, s) => n + s.end - s.start, 0); // sans les blocs « si retard »
   const load = placeable.reduce((n, t) => n + t.duration, 0);
   return {
     segments,
     overflow: queue.map(q => ({ task: q.task, left: q.left })),
     capacity,
+    main,
     load,
     usedOptional,
   };

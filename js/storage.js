@@ -79,9 +79,13 @@ export function save() {
   }
 }
 
+const listeners = [];
+export const onChange = fn => listeners.push(fn);
+
 export function update(fn) {
   fn(data);
   save();
+  listeners.forEach(f => f());
 }
 
 // Demande au navigateur de ne pas effacer nos données en cas de manque d'espace.

@@ -153,7 +153,7 @@ export function normalize(t) {
     priority: t.priority || 1, difficulty: t.difficulty || 2, subtasks: t.subtasks || [],
     deadline: t.deadline || null, subject: t.subject || null,
     done: Boolean(t.done), doneAt: t.doneAt || null, postponed: t.postponed || 0,
-    seriesId: t.seriesId || null, created: t.created || new Date().toISOString(),
+    seriesId: t.seriesId || null, rev: t.rev || null, created: t.created || new Date().toISOString(),
   };
 }
 

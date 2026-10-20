@@ -104,6 +104,7 @@ function row(t, sched) {
   const over = sched?.overflow.find(o => o.task.id === t.id);
   const sp = subProgress(t);
   const meta = [
+    t.rev ? '<b class="rev-tag">révision</b>' : '',
     k === 'bloc' ? `${t.start}–${t.end}` : k === 'duree' ? dur(t.duration) : '',
     t.difficulty === 3 ? 'difficile' : t.difficulty === 1 ? 'facile' : '',
     seg && !t.done ? `placée à ${hm(seg.start)}` : '',

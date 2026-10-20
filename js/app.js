@@ -8,6 +8,8 @@ import * as examsView from './exams-view.js';
 import * as planningView from './planning-view.js';
 import { icon } from './icons.js';
 import { renderSky } from './sky.js';
+import { dailyCheck } from './revision-plan.js';
+import { watchFeedback } from './revision-feedback.js';
 
 const views = {
   aujourdhui: {
@@ -75,9 +77,18 @@ function tick() {
 }
 setInterval(tick, 60_000);
 setInterval(chronoView.tick, 1000);
-document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  tick();
+  // nouveau jour : séances manquées replanifiées
+  const before = getData().revision.lastPlan;
+  dailyCheck();
+  if (getData().revision.lastPlan !== before) render();
+});
 
 window.addEventListener('hashchange', render);
+dailyCheck();
+watchFeedback();
 tick();
 render();
 requestPersistence();

@@ -6,6 +6,10 @@ import { icon } from './icons.js';
 import { openSheet } from './sheet.js';
 import { EXAM_TYPES, FORMATS } from './revision-defaults.js';
 import { daysUntil, countdownLabel, upcoming, past, readiness, saveExam, newExam, setMastery, examName } from './exams-model.js';
+import { regenerate, planStats, windowOf, calibrate } from './revision-plan.js';
+import { fmtMin } from './chrono.js';
+
+const shortDate = k => parseKey(k).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
 
 const longDate = k => parseKey(k).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 const subjects = () => getData().planning.subjects;
@@ -130,6 +134,7 @@ function renderForm(el, e = null) {
         .map(name => ({ id: uid(), name, mastery: fears.has(name) ? 1 : 2, fear: fears.has(name), history: [] }));
     }
     saveExam(next);
+    regenerate();
     location.hash = `#examens/${next.id}`;
   };
   el.onclick = null;
@@ -170,7 +175,8 @@ function renderExam(el, e) {
         <div class="grade-input"><input name="grade" inputmode="decimal" value="${e.grade ?? ''}" placeholder="—" aria-label="Note">
           <span class="mono">/</span><input name="gradeMax" inputmode="numeric" value="${e.gradeMax}" aria-label="Sur"></div>
         <button class="btn small" data-act="grade">Enregistrer</button>
-      </div>` : ''}
+      </div>
+      ${e.calibNote ? `<p class="small muted calib-note">${esc(e.calibNote)}</p>` : ''}` : ''}
 
     <div class="ess-head"><h2 class="section-title">Chapitres</h2><span class="small muted">maîtrise de 0 à 5</span></div>
     <div class="tasks chapters">
@@ -187,10 +193,7 @@ function renderExam(el, e) {
       <button class="icon-btn" type="submit" aria-label="Ajouter">${icon('plus')}</button>
     </form>
 
-    <div class="card plan-soon">
-      <b>Plan de révision automatique</b>
-      <p class="small muted">À l'étape E5 : les séances de révision seront placées dans ton planning et ta to-do, jusqu'au ${longDate(e.date)}, en priorité sur les chapitres faibles.</p>
-    </div>
+    ${passed ? '' : planCard(e)}
 
     <div class="row2">
       <button class="btn secondary" data-act="edit">Modifier</button>
@@ -202,31 +205,69 @@ function renderExam(el, e) {
     const name = ev.target.ch.value.trim();
     if (!name) return;
     update(d => { d.exams.find(x => x.id === e.id).chapters.push({ id: uid(), name, mastery: 0, fear: false, history: [] }); });
+    regenerate();
     renderExam(el, getData().exams.find(x => x.id === e.id));
     el.querySelector('[data-ch-add] input').focus();
   };
 
   el.onclick = ev => {
-    const t = ev.target.closest('[data-m],[data-fear],[data-del-ch],[data-act]');
+    const t = ev.target.closest('[data-m],[data-fear],[data-del-ch],[data-act],[data-open-day]');
     if (!t) return;
-    const again = () => renderExam(el, getData().exams.find(x => x.id === e.id));
+    const again = (replan = true) => { if (replan && !passed) regenerate(); renderExam(el, getData().exams.find(x => x.id === e.id)); };
     if (t.dataset.m) { const [cid, v] = t.dataset.m.split(':'); setMastery(e.id, cid, Number(v)); return again(); }
     if (t.dataset.fear) { update(d => { const c = d.exams.find(x => x.id === e.id).chapters.find(x => x.id === t.dataset.fear); c.fear = !c.fear; }); return again(); }
     if (t.dataset.delCh) { update(d => { const x = d.exams.find(y => y.id === e.id); x.chapters = x.chapters.filter(c => c.id !== t.dataset.delCh); }); return again(); }
+    if (t.dataset.openDay) { location.hash = `#planning/jour/${t.dataset.openDay}`; return; }
+    if (t.dataset.act === 'replan') { regenerate(); return again(false); }
+    if (t.dataset.act === 'plan-toggle') { update(d => { const x = d.exams.find(y => y.id === e.id); x.planOff = !x.planOff; }); return again(); }
     if (t.dataset.act === 'edit') return renderForm(el, e);
     if (t.dataset.act === 'delete') {
       if (!confirm(`Supprimer « ${examName(e)} » ?`)) return;
       update(d => { d.exams = d.exams.filter(x => x.id !== e.id); });
+      regenerate();
       location.hash = '#examens';
     }
     if (t.dataset.act === 'grade') {
       const g = parseFloat(String(el.querySelector('[name=grade]').value).replace(',', '.'));
       const max = parseInt(el.querySelector('[name=gradeMax]').value, 10) || 20;
       update(d => { const x = d.exams.find(y => y.id === e.id); x.grade = isNaN(g) ? null : g; x.gradeMax = max; });
-      again();
+      calibrate(getData().exams.find(x => x.id === e.id), e.readyAtExam ?? r);
+      again(false);
     }
   };
   return examName(e);
+}
+
+function planCard(e) {
+  if (e.planOff) return `
+    <div class="card plan-card">
+      <div class="plan-head"><b>Plan de révision</b><button class="link small" data-act="plan-toggle">Activer</button></div>
+      <p class="small muted">Plan automatique désactivé pour cette évaluation.</p>
+    </div>`;
+  const st = planStats(e);
+  const w = windowOf(e);
+  const today = dateKey();
+  const next = st.list.filter(t => !t.done && t.date >= today).sort((a, b) => a.date.localeCompare(b.date));
+  const byDay = {};
+  next.forEach(t => { (byDay[t.date] ??= []).push(t); });
+  const days = Object.keys(byDay).slice(0, 5);
+  return `
+    <div class="card plan-card">
+      <div class="plan-head"><b>Plan de révision</b><span class="mono small muted">${st.done}/${st.n} séances</span></div>
+      <span class="bar"><i style="width:${st.minutes ? Math.round(st.doneMin / st.minutes * 100) : 0}%"></i></span>
+      <p class="small muted">${fmtMin(st.doneMin)} faites sur ${fmtMin(st.minutes)} · à partir du ${shortDate(w.from)}, jusqu'au ${shortDate(w.to)}</p>
+      ${e.planOver ? `<p class="small warn-text">${fmtMin(e.planOver)} de révision ne rentrent pas dans ton temps de travail. Commence plus tôt (profil) ou augmente la part réservée aux révisions.</p>` : ''}
+      ${!e.chapters.length ? '<p class="small muted">Ajoute des chapitres pour générer le plan.</p>' : ''}
+      ${days.map(k => `
+        <button class="plan-day" data-open-day="${k}">
+          <span class="d mono">${k === today ? 'Auj.' : parseKey(k).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' })}</span>
+          <span class="grow">${byDay[k].map(t => `<span>${esc(t.title)} <i class="mono">${fmtMin(t.duration)}</i></span>`).join('')}</span>
+        </button>`).join('')}
+      <div class="plan-actions">
+        <button class="btn secondary small" data-act="replan">Recalculer</button>
+        <button class="link small" data-act="plan-toggle">Désactiver</button>
+      </div>
+    </div>`;
 }
 
 /* ---------- Profil de révision (questionnaire au premier lancement) ---------- */
@@ -255,6 +296,7 @@ function renderProfile(el, firstTime) {
       <label>Part de ton temps de travail pour réviser
         ${pick('sh', [0.5, 0.6, 0.7, 0.8, 0.9], p.share, v => `${Math.round(v * 100)} %`)}</label>
       <p class="small muted">Le reste (${Math.round((1 - p.share) * 100)} %) reste libre pour le travail courant et les devoirs.</p>
+      ${(p.calib || 1) !== 1 ? `<p class="small muted">Ajustement appris de tes notes : plans ${p.calib > 1 ? `${Math.round((p.calib - 1) * 100)} % plus longs` : `${Math.round((1 - p.calib) * 100)} % plus légers`}.</p>` : ''}
       <button class="btn" type="submit">${firstTime ? 'Enregistrer mon profil' : 'Enregistrer'}</button>
     </form>
 
@@ -282,6 +324,7 @@ function renderProfile(el, firstTime) {
         startDays: { ...r.profile.startDays, partiel: Number(f.get('sp')), cc: sc, ds: sc } };
       r.setupDone = true;
     });
+    regenerate();
     if (location.hash === '#examens') window.dispatchEvent(new HashChangeEvent('hashchange'));
     else location.hash = '#examens';
   };
