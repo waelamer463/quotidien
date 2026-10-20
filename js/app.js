@@ -3,6 +3,7 @@ import * as todayView from './today-view.js';
 import * as statsView from './stats-view.js';
 import * as settingsView from './settings-view.js';
 import { applyTheme } from './theme.js';
+import * as chronoView from './chrono-view.js';
 import * as planningView from './planning-view.js';
 import { icon } from './icons.js';
 import { renderSky } from './sky.js';
@@ -22,6 +23,10 @@ const views = {
       el.innerHTML = `<div class="card"><h2>Mode examens</h2>
         <p class="muted">Tes évaluations, ton profil de révision et ton plan automatique arrivent aux étapes E4 et E5.</p></div>`;
     },
+  },
+  chrono: {
+    title: 'Chrono',
+    render: chronoView.render,
   },
   reglages: {
     title: 'Réglages',
@@ -53,7 +58,8 @@ function render() {
   bar.classList.toggle('no-pill', i < 0);
   window.scrollTo(0, 0);
   renderSky(document.querySelector('.topbar'));
-  if (tab !== 'reglages') update(d => { d.settings.lastTab = tab; });
+  if (tab !== 'reglages' && tab !== 'chrono') update(d => { d.settings.lastTab = tab; });
+  chronoView.renderBar();
 }
 
 function renderDate() {
@@ -70,6 +76,7 @@ function tick() {
   renderSky(document.querySelector('.topbar'));
 }
 setInterval(tick, 60_000);
+setInterval(chronoView.tick, 1000);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
 
 window.addEventListener('hashchange', render);
@@ -77,7 +84,8 @@ tick();
 render();
 requestPersistence();
 
-if ('serviceWorker' in navigator) {
+// ?nosw : désactive le mode hors ligne (tests automatisés uniquement)
+if ('serviceWorker' in navigator && !location.search.includes('nosw')) {
   // Quand une nouvelle version prend le relais, on recharge une fois pour l'afficher.
   const hadController = Boolean(navigator.serviceWorker.controller);
   let reloaded = false;

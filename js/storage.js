@@ -4,7 +4,7 @@ import { planningDefaults } from './planning-defaults.js';
 // `version` permettra de migrer les données si leur structure change plus tard.
 
 const KEY = 'quotidien:data';
-const VERSION = 5;
+const VERSION = 6;
 
 function defaults() {
   return {
@@ -14,8 +14,11 @@ function defaults() {
     tasks: [],       // to-do (voir todo-model.js)
     series: [],      // tâches répétées
     planning: planningDefaults(),
-    log: {},         // essentiels jour par jour (prières, kcal, pas, salle)
-    essentials: { kcalMin: 1600, kcalMax: 1900, steps: 7000, gymPerWeek: 3 },
+    log: {},         // essentiels jour par jour (prières, kcal, pas, salle, sommeil)
+    sessions: [],    // sessions de travail (chrono)
+    chrono: null,    // chrono en cours
+    essentials: { kcalMin: 1600, kcalMax: 1900, steps: 7000, gymPerWeek: 3,
+      workGoal: { bibliotheque: 360, cours: 120, repos: 0 }, sleepGoal: 450 }, // minutes
     settings: {
       lastTab: 'aujourdhui',
       theme: { dir: 'polaire', mode: 'sombre' },

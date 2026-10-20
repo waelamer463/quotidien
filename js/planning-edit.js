@@ -231,7 +231,7 @@ export function renderSubjects(el) {
       <div class="card row-link editable" data-id="${m.id}" role="button" tabindex="0">
         <span class="subj-dot" style="background:${m.color}"></span>
         <span class="grow"><span class="name">${esc(m.name)}</span>
-          <span class="muted small">${esc(m.short)} · ${used(m.id)} cours</span></span>
+          <span class="muted small">${esc(m.short)} · ${used(m.id)} cours${m.weeklyGoal ? ` · ${m.weeklyGoal} h/sem.` : ''}</span></span>
         ${icon('right', 'chev')}
       </div>`).join('')}
     <button class="btn" data-add>${icon('plus')}Ajouter une matière</button>`;
@@ -245,11 +245,13 @@ export function renderSubjects(el) {
       body: `
         <label>Nom complet <input name="name" maxlength="60" value="${esc(m?.name || '')}"></label>
         <label>Nom court (affiché dans le planning) <input name="short" maxlength="20" value="${esc(m?.short || '')}"></label>
-        <label>Couleur <input type="color" name="color" value="${m?.color || '#4a6fa5'}"></label>`,
+        <label>Couleur <input type="color" name="color" value="${m?.color || '#4a6fa5'}"></label>
+        <label>Objectif d'heures par semaine <input name="weeklyGoal" inputmode="decimal" value="${m?.weeklyGoal ?? ''}" placeholder="Ex. 8"></label>`,
       onSave: f => {
         const name = f.get('name').trim();
         if (!name) return 'Donne un nom.';
-        const next = { id: m?.id || uid(), name, short: f.get('short').trim() || name, color: f.get('color') };
+        const goal = parseFloat(String(f.get('weeklyGoal')).replace(',', '.'));
+        const next = { id: m?.id || uid(), name, short: f.get('short').trim() || name, color: f.get('color'), weeklyGoal: isNaN(goal) ? null : goal };
         update(d => {
           const i = d.planning.subjects.findIndex(x => x.id === next.id);
           if (i >= 0) d.planning.subjects[i] = next; else d.planning.subjects.push(next);

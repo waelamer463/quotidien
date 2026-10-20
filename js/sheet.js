@@ -5,7 +5,7 @@ import { esc } from './util.js';
 import { icon } from './icons.js';
 import { KINDS } from './planning-model.js';
 
-export function openSheet({ title, body, onSave, onDelete, saveLabel = 'Enregistrer' }) {
+export function openSheet({ title, body, onSave, onDelete, saveLabel = 'Enregistrer', extra = null }) {
   const wrap = document.createElement('div');
   wrap.className = 'sheet-backdrop';
   wrap.innerHTML = `
@@ -17,6 +17,7 @@ export function openSheet({ title, body, onSave, onDelete, saveLabel = 'Enregist
       ${body}
       <p class="error" hidden></p>
       <button class="btn" type="submit">${saveLabel}</button>
+      ${extra ? `<button class="btn secondary" type="button" data-extra>${extra.label}</button>` : ''}
       ${onDelete ? '<button class="btn danger" type="button" data-delete>Supprimer</button>' : ''}
     </form>`;
   document.body.appendChild(wrap);
@@ -28,6 +29,7 @@ export function openSheet({ title, body, onSave, onDelete, saveLabel = 'Enregist
   wrap.addEventListener('click', e => {
     if (e.target === wrap || e.target.closest('[data-close]')) close();
     if (e.target.closest('[data-delete]')) { onDelete(); close(); }
+    if (e.target.closest('[data-extra]')) { close(); extra.onClick(); }
   });
   form.addEventListener('submit', e => {
     e.preventDefault();

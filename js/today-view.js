@@ -5,7 +5,8 @@ import { dateKey, addDays, dayLabel, parseKey, fmt, esc } from './util.js';
 import { icon } from './icons.js';
 import { PRAYERS, PRAYER_NAMES } from './prayers.js';
 import { buildDay, toHHMM } from './planning-model.js';
-import { PRAYER_STATES, dayLog, setLog, cyclePrayer, gymWeek, kcalState } from './essentials.js';
+import { PRAYER_STATES, dayLog, setLog, cyclePrayer, gymWeek, kcalState, workGoal, sleepMinutes } from './essentials.js';
+import { minutesOn, fmtMin } from './chrono.js';
 import { SHORTCUT_URL, parse, apply } from './health-import.js';
 import { openSheet } from './sheet.js';
 import { todoSection, handleTodoClick, bindQuick, taskBlocks } from './todo-view.js';
@@ -37,7 +38,7 @@ export function render(el) {
 
     <div class="ess-head">
       <h2 class="section-title">Essentiels</h2>
-      <button class="link small" data-act="settings">Objectifs</button>
+      <a class="link small" href="#reglages">Objectifs</a>
     </div>
 
     <div class="card prayers-card">
@@ -56,13 +57,16 @@ export function render(el) {
       </div>
     </div>
 
-    <div class="rings">
+    <div class="rings four">
+      ${ring('work', fmtMin(minutesOn(day)), 'Travail', workGoal(day) ? `objectif ${fmtMin(workGoal(day))}` : 'jour de repos',
+        workGoal(day) && minutesOn(day) >= workGoal(day) ? 'done' : 'todo', workGoal(day) ? minutesOn(day) / workGoal(day) : 0)}
       ${ring('kcal', fmtK(l.kcal), 'Calories', `${fmt(e.kcalMin)}–${fmt(e.kcalMax)}`, kcalState(l.kcal, e), (l.kcal || 0) / e.kcalMax)}
       ${ring('pas', fmtK(l.pas), 'Pas', `≥ ${fmt(e.steps)}`, (l.pas || 0) >= e.steps ? 'done' : 'todo', (l.pas || 0) / e.steps)}
       ${ring('gym', l.salle ? null : `${gym.count}/${e.gymPerWeek}`, 'Salle',
         l.salle ? `faite · ${gym.count}/${e.gymPerWeek} sem.` : 'touche si tu y es allé', gym.count >= e.gymPerWeek || l.salle ? 'done' : 'todo',
         gym.count / e.gymPerWeek)}
     </div>
+    ${sleepCard(l, e)}
     <div class="gym-week">
       ${gym.days.map(g => `<span class="${g.done ? 'on' : ''} ${g.key === day ? 'cur' : ''}">${'DLMMJVS'[parseKey(g.key).getDay()]}</span>`).join('')}
     </div>
@@ -87,6 +91,8 @@ export function render(el) {
   el.onclick = async ev => {
     if (handleTodoClick(ev, day, () => render(el))) return;
     const b = ev.target.closest('[data-act],[data-prayer],[data-metric]');
+    if (b?.dataset.metric === 'work') { location.hash = '#chrono'; return; }
+    if (b?.dataset.metric === 'sleep') return editSleep(el);
     if (b?.dataset.metric === 'gym') { setLog(day, x => { if (x.salle) delete x.salle; else x.salle = true; }); return render(el); }
     if (!b) return;
     const a = b.dataset.act;
@@ -109,6 +115,39 @@ function conflictNote(items) {
   return n ? `<a class="card banner warn row-link" href="#planning/jour/${day}">
     <span class="grow"><strong>${n} chevauchement${n > 1 ? 's' : ''} dans ton planning</strong>
       <span class="small muted">Touche pour voir les solutions proposées.</span></span>${icon('right', 'chev')}</a>` : '';
+}
+
+function sleepCard(l, e) {
+  const m = sleepMinutes(l);
+  return `
+    <button class="card sleep-card ${m !== null && m >= e.sleepGoal ? 'ok' : ''}" data-metric="sleep">
+      <svg class="ic" viewBox="0 0 24 24"><path d="M19.5 14.8A7.5 7.5 0 019.2 4.5a7.5 7.5 0 1010.3 10.3z"/></svg>
+      <span class="grow"><b>Sommeil</b>
+        <span class="small muted">${m === null ? 'Touche pour saisir ton coucher et ton lever' : `${l.sleep.bed} → ${l.sleep.wake} · objectif ${fmtMin(e.sleepGoal)}`}</span></span>
+      <span class="mono sleep-val">${m === null ? '—' : fmtMin(m)}</span>
+    </button>`;
+}
+
+function editSleep(el) {
+  const l = dayLog(day);
+  const goal = getData().essentials.sleepGoal;
+  openSheet({
+    title: 'Sommeil',
+    body: `
+      <p class="small muted">La nuit qui précède cette journée.</p>
+      <div class="grid2">
+        <label>Couché à <input type="time" name="bed" value="${l.sleep?.bed || '23:00'}"></label>
+        <label>Levé à <input type="time" name="wake" value="${l.sleep?.wake || '06:30'}"></label>
+      </div>
+      <label>Objectif de sommeil (heures) <input name="goal" inputmode="decimal" value="${String(goal / 60).replace('.', ',')}"></label>`,
+    onSave: f => {
+      if (!f.get('bed') || !f.get('wake')) return 'Indique les deux heures.';
+      const g = parseFloat(String(f.get('goal')).replace(',', '.'));
+      setLog(day, x => { x.sleep = { bed: f.get('bed'), wake: f.get('wake') }; });
+      if (!isNaN(g) && g > 0) update(d => { d.essentials.sleepGoal = Math.round(g * 60); });
+      render(el);
+    },
+  });
 }
 
 // Dernière position de chaque anneau : l'anneau s'anime de l'ancienne valeur vers la nouvelle.

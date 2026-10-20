@@ -9,6 +9,7 @@ import { schedule } from './scheduler.js';
 import { exportData, importFile, daysSinceExport } from './backup.js';
 import { taskBlocks, blockSegments, handleTodoClick, editTask } from './todo-view.js';
 import { gridHTML, bindGrid } from './grid-view.js';
+import { startChrono } from './chrono-view.js';
 import { findConflicts, groupConflicts, suggestions } from './conflicts.js';
 
 let day = dateKey();
@@ -156,6 +157,13 @@ function moveBrick(it, start, end) {
   setDay(d => { d.items = next; }); // l'ordre est conservé pour garder les repères (eid)
 }
 
+// Un cours s'appelle « Analyse · TD » : on retrouve la matière par son nom court.
+function subjectFromLabel(label) {
+  const short = label.split(' · ')[0];
+  return getData().planning.subjects.find(s => s.short === short)?.id || null;
+}
+const minutesBetween = (a, b) => { const m = s => { const [h, mm] = s.split(':').map(Number); return h * 60 + mm; }; return m(b) - m(a); };
+
 // Modifier / ajouter une activité de ce jour : la journée est d'abord "figée" pour ne toucher qu'elle.
 function editActivity(el, eid) {
   const p = getData().planning;
@@ -173,6 +181,8 @@ function editActivity(el, eid) {
       setDay(d => { d.items = next; });
       renderDay(el);
     },
+    extra: a && ['travail', 'cours'].includes(a.kind) ? { label: 'Lancer le chrono', onClick: () => startChrono({
+      label: a.label, subject: subjectFromLabel(a.label), planned: minutesBetween(a.start, a.end) }) } : null,
     onDelete: a && (() => {
       setDay(d => { d.items = list.filter((_, i) => i !== eid); });
       renderDay(el);

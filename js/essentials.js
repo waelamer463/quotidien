@@ -6,6 +6,8 @@
 import { getData, update } from './storage.js';
 import { addDays, parseKey } from './util.js';
 import { PRAYERS } from './prayers.js';
+import { minutesOn } from './chrono.js';
+import { dayType } from './planning-model.js';
 
 export const PRAYER_STATES = {
   heure: 'à l\'heure',
@@ -64,5 +66,20 @@ export function essentialsScore(key) {
   const kcal = kcalState(l.kcal, e) === 'done' ? 1 : 0;
   const pas = Math.min(1, (l.pas || 0) / e.steps);
   const gym = l.salle || gymWeek(key).count >= e.gymPerWeek ? 1 : 0;
-  return (prayers * 2 + kcal + pas + gym) / 5; // les prières pèsent double
+  const goal = workGoal(key);
+  const parts = [prayers * 2, kcal, pas, gym];
+  if (goal) parts.push(Math.min(1, minutesOn(key) / goal));
+  return parts.reduce((a, b) => a + b, 0) / (parts.length + 1); // les prières pèsent double
+}
+
+// Objectif de travail du jour (minutes), selon le type de jour.
+export function workGoal(key) {
+  const e = getData().essentials;
+  return e.workGoal?.[dayType(getData().planning, key)] ?? 0;
+}
+
+export function sleepMinutes(l) {
+  if (!l?.sleep?.bed || !l.sleep.wake) return null;
+  const m = s => { const [h, mm] = s.split(':').map(Number); return h * 60 + mm; };
+  return (m(l.sleep.wake) - m(l.sleep.bed) + 1440) % 1440;
 }

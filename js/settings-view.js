@@ -25,8 +25,8 @@ export function render(el) {
 
     <h2 class="section-title">Objectifs des essentiels</h2>
     <button class="card row-link" data-goals style="width:100%;border:none;font:inherit;color:inherit;text-align:left">
-      <span class="grow"><span class="name">Calories, pas, salle</span>
-        <span class="muted small">${e.kcalMin}–${e.kcalMax} kcal · ${e.steps} pas · salle ${e.gymPerWeek}× par semaine</span></span>
+      <span class="grow"><span class="name">Calories, pas, salle, travail</span>
+        <span class="muted small">${e.kcalMin}–${e.kcalMax} kcal · ${e.steps} pas · salle ${e.gymPerWeek}× / sem. · travail ${e.workGoal.bibliotheque / 60} h biblio, ${e.workGoal.cours / 60} h cours</span></span>
       <span class="chev-txt">›</span>
     </button>
     <div id="planning-settings"></div>`;
@@ -53,10 +53,19 @@ function editGoals(el) {
         <label>Calories max <input name="kcalMax" inputmode="numeric" value="${e.kcalMax}"></label>
         <label>Pas minimum <input name="steps" inputmode="numeric" value="${e.steps}"></label>
         <label>Salle par semaine <input name="gymPerWeek" inputmode="numeric" value="${e.gymPerWeek}"></label>
+      </div>
+      <p class="small muted">Heures de travail visées (chrono), selon le type de jour :</p>
+      <div class="grid2">
+        <label>Bibliothèque (h) <input name="wB" inputmode="decimal" value="${String(e.workGoal.bibliotheque / 60).replace('.', ',')}"></label>
+        <label>Cours (h) <input name="wC" inputmode="decimal" value="${String(e.workGoal.cours / 60).replace('.', ',')}"></label>
+        <label>Repos (h) <input name="wR" inputmode="decimal" value="${String(e.workGoal.repos / 60).replace('.', ',')}"></label>
       </div>`,
     onSave: f => {
       const n = k => parseInt(f.get(k), 10);
-      const next = { ...e, kcalMin: n('kcalMin'), kcalMax: n('kcalMax'), steps: n('steps'), gymPerWeek: n('gymPerWeek') };
+      const h = k => Math.round(parseFloat(String(f.get(k)).replace(',', '.')) * 60);
+      const next = { ...e, kcalMin: n('kcalMin'), kcalMax: n('kcalMax'), steps: n('steps'), gymPerWeek: n('gymPerWeek'),
+        workGoal: { bibliotheque: h('wB'), cours: h('wC'), repos: h('wR') } };
+      if (Object.values(next.workGoal).some(v => isNaN(v) || v < 0)) return 'Vérifie les heures de travail.';
       if (['kcalMin', 'kcalMax', 'steps', 'gymPerWeek'].some(k => isNaN(next[k]) || next[k] < 0)) return 'Vérifie les nombres.';
       if (next.kcalMin > next.kcalMax) return 'Le minimum de calories dépasse le maximum.';
       update(d => { d.essentials = next; });

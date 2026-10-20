@@ -5,6 +5,7 @@ import { dateKey, addDays, parseKey, dayLabel, esc, uid } from './util.js';
 import { icon } from './icons.js';
 import { openSheet } from './sheet.js';
 import { schedule, nextWorkDay } from './scheduler.js';
+import { startChrono } from './chrono-view.js';
 import { PRIORITY, kindOf, parseQuick, addTask, normalize, materialize, ruleLabel, sortTasks } from './todo-model.js';
 
 export const dur = m => (m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? String(m % 60).padStart(2, '0') : ''}` : `${m} min`);
@@ -106,6 +107,7 @@ function row(t, sched) {
           ${subj ? `<i class="subj-dot sm" style="background:${subj.color}"></i>${esc(subj.short)}` : ''}
           ${meta.join(' · ')}${t.seriesId ? ` ${icon('sync', 'tiny')}` : ''}</span>` : ''}
       </button>
+      ${t.done ? '' : `<button class="play" data-todo-play="${t.id}" aria-label="Lancer le chrono"><svg class="ic" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg></button>`}
     </div>`;
 }
 
@@ -113,11 +115,16 @@ function row(t, sched) {
 
 // Gère les clics de la section ; renvoie true si traité.
 export function handleTodoClick(e, day, rerender) {
-  const b = e.target.closest('[data-todo-tab],[data-todo-done],[data-todo-edit],[data-todo-act],[data-series]');
+  const b = e.target.closest('[data-todo-tab],[data-todo-done],[data-todo-edit],[data-todo-act],[data-series],[data-todo-play]');
   if (!b) return false;
   const ds = b.dataset;
   const { planning: p, tasks } = getData();
 
+  if (ds.todoPlay) {
+    const t = tasks.find(x => x.id === ds.todoPlay);
+    startChrono({ subject: t.subject, taskId: t.id, label: t.title, planned: t.duration });
+    return true;
+  }
   if (ds.todoTab) tab = ds.todoTab;
   else if (ds.todoDone) toggleDone(ds.todoDone);
   else if (ds.todoEdit) { editTask(tasks.find(t => t.id === ds.todoEdit), rerender); return true; }
