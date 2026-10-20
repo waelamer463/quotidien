@@ -4,6 +4,7 @@ import * as statsView from './stats-view.js';
 import * as settingsView from './settings-view.js';
 import { applyTheme } from './theme.js';
 import * as chronoView from './chrono-view.js';
+import * as examsView from './exams-view.js';
 import * as planningView from './planning-view.js';
 import { icon } from './icons.js';
 import { renderSky } from './sky.js';
@@ -19,10 +20,7 @@ const views = {
   },
   examens: {
     title: 'Examens',
-    render: el => {
-      el.innerHTML = `<div class="card"><h2>Mode examens</h2>
-        <p class="muted">Tes évaluations, ton profil de révision et ton plan automatique arrivent aux étapes E4 et E5.</p></div>`;
-    },
+    render: examsView.render,
   },
   chrono: {
     title: 'Chrono',

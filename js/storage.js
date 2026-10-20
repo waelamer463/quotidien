@@ -1,10 +1,11 @@
 import { planningDefaults } from './planning-defaults.js';
+import { revisionDefaults } from './revision-defaults.js';
 
 // Toutes les données de l'app vivent dans un seul objet, sauvegardé dans localStorage.
 // `version` permettra de migrer les données si leur structure change plus tard.
 
 const KEY = 'quotidien:data';
-const VERSION = 6;
+const VERSION = 7;
 
 function defaults() {
   return {
@@ -17,6 +18,8 @@ function defaults() {
     log: {},         // essentiels jour par jour (prières, kcal, pas, salle, sommeil)
     sessions: [],    // sessions de travail (chrono)
     chrono: null,    // chrono en cours
+    exams: [],       // évaluations (mode examens)
+    revision: revisionDefaults(), // profil de révision et méthodes
     essentials: { kcalMin: 1600, kcalMax: 1900, steps: 7000, gymPerWeek: 3,
       workGoal: { bibliotheque: 360, cours: 120, repos: 0 }, sleepGoal: 450 }, // minutes
     settings: {
@@ -40,6 +43,7 @@ function load() {
       settings: { ...base.settings, ...saved.settings },
       planning: { ...base.planning, ...saved.planning },
       essentials: { ...base.essentials, ...saved.essentials },
+      revision: { ...base.revision, ...saved.revision, profile: { ...base.revision.profile, ...saved.revision?.profile } },
     };
     // v2 : nouveaux horaires du modèle Bibliothèque (déjeuner 13h–14h30)
     if ((saved.version || 1) < 2) out.planning.templates = base.planning.templates;

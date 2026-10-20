@@ -29,6 +29,9 @@ export function render(el) {
         <span class="muted small">${e.kcalMin}–${e.kcalMax} kcal · ${e.steps} pas · salle ${e.gymPerWeek}× / sem. · travail ${e.workGoal.bibliotheque / 60} h biblio, ${e.workGoal.cours / 60} h cours</span></span>
       <span class="chev-txt">›</span>
     </button>
+    <h2 class="section-title">Révisions</h2>
+    <a class="card row-link" href="#examens/profil"><span class="grow"><span class="name">Profil de révision</span>
+      <span class="muted small">Méthodes, délais avant les épreuves, durée des sessions</span></span><span class="chev-txt">›</span></a>
     <div id="planning-settings"></div>`;
 
   renderPlanningSettings(el.querySelector('#planning-settings'), { embedded: true });

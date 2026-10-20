@@ -1,7 +1,7 @@
 // Stratégie "réseau d'abord" : en ligne, tu reçois toujours la dernière version ;
 // hors ligne, l'app se charge depuis le cache.
 
-const CACHE = 'quotidien-v21';
+const CACHE = 'quotidien-v22';
 const FILES = [
   './',
   'index.html',
@@ -31,6 +31,9 @@ const FILES = [
   'js/chrono.js',
   'js/chrono-view.js',
   'js/toast.js',
+  'js/revision-defaults.js',
+  'js/exams-model.js',
+  'js/exams-view.js',
   'js/icons.js',
   'js/sky.js',
   'fonts/geist-latin.woff2',

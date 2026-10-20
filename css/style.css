@@ -1154,3 +1154,64 @@ body.has-chrono { padding-bottom: calc(var(--tabbar-h) + 100px + env(safe-area-i
 #toast button { border: none; background: var(--accent-soft); color: var(--accent); font: inherit; font-weight: 700; padding: 6px 12px; border-radius: 12px; cursor: pointer; }
 #toast.out { opacity: 0; transition: opacity .3s; }
 body.has-chrono #toast { bottom: calc(12px + var(--tabbar-h) + 84px + env(safe-area-inset-bottom)); }
+
+/* ---------- E4 · examens ---------- */
+.exam-card { display: flex; align-items: center; gap: 18px; color: inherit; text-decoration: none; overflow: hidden; position: relative; }
+.exam-card::after { content: ''; position: absolute; right: -50px; top: -50px; width: 170px; height: 170px; border-radius: 50%;
+  background: radial-gradient(color-mix(in srgb, var(--sc) 30%, transparent), transparent 70%); pointer-events: none; }
+.exam-card .grow { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.exam-card b { font-size: 17px; font-weight: 600; }
+.exam-card .bar { margin: 6px 0 2px; }
+.exam-card.compact { padding: 16px 18px; }
+.jx { font-size: 40px; font-weight: 600; letter-spacing: -0.05em; line-height: 1; color: var(--accent); text-shadow: 0 0 18px var(--accent-soft); flex: none; }
+.jx.big { display: block; font-size: 56px; margin-bottom: 8px; }
+.label { display: block; font-size: 13px; color: var(--muted); font-weight: 500; }
+.empty-card p { margin-top: 4px; }
+.profile-link { margin-top: 22px; }
+.grade { font-size: 15px; font-weight: 600; color: var(--accent); }
+.grade.none { color: var(--muted); font-weight: 500; }
+
+.chips-pick { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips-pick label { position: relative; }
+.chips-pick input { position: absolute; opacity: 0; pointer-events: none; }
+.chips-pick span { display: inline-block; padding: 9px 14px; border-radius: 999px; background: var(--surface-2); color: var(--text); font-weight: 600; font-size: 14px; cursor: pointer; transition: background .2s, box-shadow .2s; }
+.chips-pick input:checked + span { background: var(--accent); color: var(--on-accent); box-shadow: var(--glow); }
+.chips-pick input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.form textarea { width: 100%; padding: 12px 14px; min-height: 120px; border: none; border-radius: var(--r-md); background: var(--surface-2); color: var(--text); font: inherit; font-size: 16px; resize: vertical; }
+.q-title { margin: 8px 0 -4px; font-size: 16px; font-weight: 600; }
+.segmented.five { grid-template-columns: repeat(5, 1fr); }
+.scale { display: flex; justify-content: space-between; margin: 4px 4px 0; }
+
+.exam-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; position: relative; overflow: hidden; }
+.exam-head::after { content: ''; position: absolute; left: -60px; top: -60px; width: 200px; height: 200px; border-radius: 50%;
+  background: radial-gradient(color-mix(in srgb, var(--sc) 25%, transparent), transparent 70%); pointer-events: none; }
+.ring-dial.ready { width: 84px; height: 84px; flex: none; }
+.ring-dial.ready .ring-val { font-size: 16px; }
+
+.grade-card { display: flex; align-items: center; gap: 12px; }
+.grade-card b { flex: 1; }
+.grade-input { display: flex; align-items: center; gap: 6px; }
+.grade-input input { width: 64px; min-height: 44px; text-align: center; font-family: var(--mono); padding: 0 6px; }
+
+.chapter { align-items: center; }
+.chapter .grow { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.mastery { display: flex; gap: 4px; }
+.m-dot { width: 30px; height: 30px; border-radius: 9px; border: none; background: var(--surface-2); color: var(--muted);
+  font-family: var(--mono); font-size: 12px; font-weight: 600; cursor: pointer; transition: background .2s, transform .3s var(--pop); }
+.m-dot.on { background: color-mix(in srgb, var(--accent) 45%, transparent); color: var(--text); }
+.m-dot.cur { background: var(--accent); color: var(--on-accent); box-shadow: var(--glow); transform: scale(1.08); }
+.fear-btn { flex: none; width: 30px; height: 30px; border-radius: 50%; border: none; cursor: pointer; font-weight: 800;
+  background: var(--surface-2); color: var(--muted); }
+.chapter.fear .fear-btn { background: var(--danger); color: #fff; box-shadow: 0 0 12px var(--danger-soft); }
+.ch-add { margin-top: 10px; }
+.plan-soon { margin-top: 16px; }
+.plan-soon p { margin-top: 4px; }
+
+.method.off { opacity: .55; }
+.stage { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); font-weight: 700; flex: none; font-size: 13px; }
+.weight { font-size: 12px; color: var(--muted); }
+button.task.method { width: 100%; border: 1px solid var(--edge); font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.intro p { margin-top: 6px; }
+.row-link.method > .stage { flex: none; width: 28px; }
+.method .grow { flex: 1; min-width: 0; }
+.method .task-title { display: block; }
