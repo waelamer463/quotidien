@@ -18,6 +18,8 @@ export const toHHMM = min => {
 
 // Créneaux de cours prévus ce jour-là (emploi du temps dont une période couvre la date).
 export function courseSlots(p, key) {
+  const own = p.days[key]?.slots; // cours saisis pour ce jour seulement
+  if (own?.length) return [...own].sort((a, b) => toMin(a.start) - toMin(b.start));
   const wd = parseKey(key).getDay();
   for (const c of p.courses) {
     if (c.except.includes(key)) continue;

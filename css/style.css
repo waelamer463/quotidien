@@ -1290,3 +1290,9 @@ button.task.method { width: 100%; border: 1px solid var(--edge); font: inherit; 
 .goal-card .bar { display: block; height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
 .goal-card .bar i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
 .goal-form .grid2 { grid-template-columns: 2fr 1fr; }
+
+/* ---------- Saisie d'une journée de cours ---------- */
+.wiz-done { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: var(--r-md); background: var(--surface-2); font-size: 14px; }
+.wiz-done b { font-weight: 600; margin-right: 6px; }
+.wiz-stop { align-self: center; padding: 6px; }
+.wiz-open { width: 100%; margin-top: 10px; }

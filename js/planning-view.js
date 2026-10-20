@@ -10,6 +10,7 @@ import { exportData, importFile, daysSinceExport } from './backup.js';
 import { taskBlocks, blockSegments, handleTodoClick, editTask } from './todo-view.js';
 import { gridHTML, bindGrid } from './grid-view.js';
 import { startChrono } from './chrono-view.js';
+import { courseWizard } from './course-wizard.js';
 import { findConflicts, groupConflicts, suggestions } from './conflicts.js';
 
 let day = dateKey();
@@ -34,7 +35,7 @@ function renderDay(el) {
   const sched = schedule(p, tasks, day, built);
   const month = day.slice(0, 7);
   const rest = restDaysInMonth(p, month);
-  const overridden = Boolean(p.days[day]?.type || p.days[day]?.items);
+  const overridden = Boolean(p.days[day]?.type || p.days[day]?.items || p.days[day]?.slots);
   const hasCourses = courseSlots(p, day).length > 0;
   const now = new Date();
   const nowMin = day === dateKey() ? now.getHours() * 60 + now.getMinutes() : -1;
@@ -53,13 +54,14 @@ function renderDay(el) {
 
     <div class="segmented three">
       ${Object.entries(DAY_TYPES).map(([k, t]) => `
-        <button class="${type === k ? 'on' : ''}" data-type="${k}" ${k === 'cours' && !hasCourses ? 'disabled' : ''}>
+        <button class="${type === k ? 'on' : ''}" data-type="${k}">
           ${icon(t.icon)}<span>${t.label}</span></button>`).join('')}
     </div>
+    ${type === 'cours' ? `<button class="btn secondary small wiz-open" data-act="wizard">${icon('course')}${hasCourses ? 'Saisir à nouveau les cours de ce jour' : 'Saisir les cours de ce jour'}</button>` : ''}
     <p class="small muted rest-count ${rest > p.restPerMonth ? 'warn' : ''}">
       Repos ce mois-ci : <b>${rest} / ${p.restPerMonth}</b>
     </p>
-    ${overridden ? `<p class="small muted modified">${p.days[day]?.items ? 'Journée modifiée à la main' : 'Type de jour changé'} ·
+    ${overridden ? `<p class="small muted modified">${p.days[day]?.items ? 'Journée modifiée à la main' : p.days[day]?.slots ? 'Cours saisis pour ce jour' : 'Type de jour changé'} ·
       <button class="link" data-act="reset">Revenir au planning prévu</button></p>` : ''}
 
     ${conflicts.length ? `
@@ -116,6 +118,9 @@ function renderDay(el) {
     if (!t) return;
     if (t.dataset.eid) return editActivity(el, Number(t.dataset.eid));
     if (t.dataset.act === 'add') return editActivity(el, null);
+    if (t.dataset.act === 'wizard' || (t.dataset.type === 'cours' && !courseSlots(p, day).length)) {
+      return courseWizard(day, () => renderDay(el));
+    }
     if (t.dataset.day) day = t.dataset.day;
     else if (t.dataset.type) {
       const auto = courseSlots(p, day).length ? 'cours' : 'bibliotheque';
