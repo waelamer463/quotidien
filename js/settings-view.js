@@ -37,8 +37,9 @@ export function render(el) {
   renderPlanningSettings(el.querySelector('#planning-settings'), { embedded: true });
 
   el.onclick = ev => {
-    const d = ev.target.closest('[data-dir]');
-    const m = ev.target.closest('[data-mode]');
+    // (on cherche dans la page seulement : <html> porte lui aussi data-dir et data-mode)
+    const d = ev.target.closest('.theme-card[data-dir]');
+    const m = ev.target.closest('button[data-mode]');
     if (d) { setTheme({ dir: d.dataset.dir }); render(el); }
     else if (m) { setTheme({ mode: m.dataset.mode }); render(el); }
     else if (ev.target.closest('[data-goals]')) editGoals(el);

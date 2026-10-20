@@ -62,6 +62,12 @@ function render() {
   bar.style.setProperty('--i', Math.max(0, i));
   bar.classList.toggle('no-pill', i < 0);
   window.scrollTo(0, 0);
+  // Dans Réglages, l'engrenage devient un bouton retour vers l'onglet d'où l'on vient
+  const head = document.querySelector('.head-btn');
+  const inSettings = tab === 'reglages';
+  head.href = inSettings ? `#${getData().settings.lastTab}` : '#reglages';
+  head.setAttribute('aria-label', inSettings ? 'Retour' : 'Réglages');
+  head.innerHTML = icon(inSettings ? 'left' : 'settings');
   renderSky(document.querySelector('.topbar'));
   if (!['reglages', 'chrono', 'bilan'].includes(tab)) update(d => { d.settings.lastTab = tab; });
   chronoView.renderBar();
