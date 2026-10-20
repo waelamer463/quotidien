@@ -1438,7 +1438,8 @@ body.pal-reduced .es-mascot { display: none; }
 .sync-card { display: flex; flex-direction: column; gap: 10px; }
 .sync-card p { margin: 0; }
 .sync-who { display: flex; flex-direction: column; gap: 2px; }
-.sync-form { display: flex; gap: 8px; }
-.sync-form input { flex: 1; min-width: 0; }
-.sync-form .btn { margin: 0; flex: none; padding: 0 16px; }
+.sync-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sync-form input { grid-column: 1 / -1; width: 100%; min-width: 0; }
+.sync-form .btn { margin: 0; width: 100%; }
+.sync-form .btn:only-of-type { grid-column: 1 / -1; }
 .sync-msg { color: var(--warm); }
