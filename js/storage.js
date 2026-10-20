@@ -23,6 +23,7 @@ function defaults() {
     weekly: {},      // objectifs de la semaine (bilan du dimanche)
     essentials: { kcalMin: 1600, kcalMax: 1900, steps: 7000, gymPerWeek: 3,
       workGoal: { bibliotheque: 360, cours: 120, repos: 0 }, sleepGoal: 450 }, // minutes
+    meta: { keyTimes: {}, syncedAt: null }, // synchronisation : date de dernière modification de chaque partie
     settings: {
       lastTab: 'aujourdhui',
       theme: { dir: 'polaire', mode: 'sombre' },
@@ -32,6 +33,25 @@ function defaults() {
 }
 
 let data = load();
+
+// Repère les parties modifiées (pour la synchronisation). Les réglages propres à l'appareil
+// (dernier onglet, phrases récentes de la mascotte) ne comptent pas.
+const SKIP = new Set(['meta', 'version']);
+const serial = (k, v) => (k === 'settings'
+  ? JSON.stringify({ ...v, lastTab: undefined, lastExport: undefined, mascot: v.mascot && { ...v.mascot, recent: undefined, hello: undefined } })
+  : JSON.stringify(v));
+const cache = {};
+for (const k of Object.keys(data)) if (!SKIP.has(k)) cache[k] = serial(k, data[k]);
+
+function markChanged() {
+  const now = Date.now();
+  data.meta ??= { keyTimes: {}, syncedAt: null };
+  for (const k of Object.keys(data)) {
+    if (SKIP.has(k)) continue;
+    const v = serial(k, data[k]);
+    if (v !== cache[k]) { cache[k] = v; data.meta.keyTimes[k] = now; }
+  }
+}
 
 function load() {
   try {
@@ -86,8 +106,28 @@ export const onChange = fn => listeners.push(fn);
 
 export function update(fn) {
   fn(data);
+  markChanged();
   save();
-  listeners.forEach(f => f());
+  listeners.forEach(f => f({ remote: false }));
+}
+
+// Applique des parties reçues d'un autre appareil (sans les marquer comme modifiées ici).
+export function applyRemote(parts, times, syncedAt) {
+  for (const [k, v] of Object.entries(parts)) {
+    data[k] = k === 'settings'
+      ? { ...v, lastTab: data.settings.lastTab, lastExport: data.settings.lastExport, mascot: { ...v.mascot, recent: data.settings.mascot?.recent || [], hello: data.settings.mascot?.hello } }
+      : v;
+    cache[k] = serial(k, data[k]);
+    data.meta.keyTimes[k] = times[k];
+  }
+  if (syncedAt) data.meta.syncedAt = syncedAt;
+  save();
+  if (Object.keys(parts).length) listeners.forEach(f => f({ remote: true }));
+}
+
+export function setMeta(patch) {
+  data.meta = { ...data.meta, ...patch };
+  save();
 }
 
 // Demande au navigateur de ne pas effacer nos données en cas de manque d'espace.

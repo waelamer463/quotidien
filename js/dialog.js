@@ -3,7 +3,7 @@
 import { esc } from './util.js';
 
 // ask({ title, text, ok, danger }) → Promise<boolean>
-export function ask({ title, text = '', ok = 'Confirmer', cancel = 'Annuler', danger = false }) {
+export function ask({ title, text = '', ok = 'Confirmer', cancel = 'Annuler', danger = false, dismiss = true }) {
   return new Promise(resolve => {
     const wrap = document.createElement('div');
     wrap.className = 'dialog-backdrop';
@@ -21,7 +21,7 @@ export function ask({ title, text = '', ok = 'Confirmer', cancel = 'Annuler', da
     wrap.addEventListener('click', e => {
       const b = e.target.closest('[data-v]');
       if (b) done(b.dataset.v === '1');
-      else if (e.target === wrap) done(false);
+      else if (e.target === wrap && dismiss) done(false);
     });
     wrap.querySelector('.dialog').focus({ preventScroll: true });
   });

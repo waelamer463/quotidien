@@ -7,6 +7,7 @@ import { openSheet } from './sheet.js';
 import { renderSettings as renderPlanningSettings } from './planning-view.js';
 import { mascotSettings, setMascot, renderHead } from './mascot.js';
 import { orb } from './orb.js';
+import { renderSync } from './sync-view.js';
 
 export function render(el) {
   const t = currentTheme();
@@ -47,9 +48,11 @@ export function render(el) {
     <h2 class="section-title">Révisions</h2>
     <a class="card row-link" href="#examens/profil"><span class="grow"><span class="name">Profil de révision</span>
       <span class="muted small">Méthodes, délais avant les épreuves, durée des sessions</span></span><span class="chev-txt">›</span></a>
-    <div id="planning-settings"></div>`;
+    <div id="planning-settings"></div>
+    <div id="sync-settings"></div>`;
 
   renderPlanningSettings(el.querySelector('#planning-settings'), { embedded: true });
+  renderSync(el.querySelector('#sync-settings'));
 
   el.onclick = ev => {
     // (on cherche dans la page seulement : <html> porte lui aussi data-dir et data-mode)

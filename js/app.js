@@ -1,4 +1,4 @@
-import { getData, update, requestPersistence } from './storage.js';
+import { getData, update, requestPersistence, onChange } from './storage.js';
 import * as todayView from './today-view.js';
 import * as statsView from './stats-view.js';
 import * as settingsView from './settings-view.js';
@@ -12,6 +12,7 @@ import { renderSky } from './sky.js';
 import { dailyCheck } from './revision-plan.js';
 import { watchFeedback } from './revision-feedback.js';
 import { startMascot, renderHead } from './mascot.js';
+import { startSync } from './sync.js';
 
 const views = {
   aujourdhui: {
@@ -110,6 +111,13 @@ watchFeedback();
 tick();
 render();
 startMascot();
+startSync();
+// données reçues d'un autre appareil : on redessine (sauf si tu es en train d'écrire)
+onChange(({ remote } = {}) => {
+  if (!remote) return;
+  const typing = document.activeElement?.closest?.('#view input, #view textarea, .sheet');
+  if (!typing && !document.querySelector('.sheet-backdrop')) render();
+});
 requestPersistence();
 
 // ?nosw : désactive le mode hors ligne (tests automatisés uniquement)

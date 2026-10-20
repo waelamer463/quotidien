@@ -1433,3 +1433,12 @@ body.pal-reduced .es-mascot { display: none; }
 .pal-settings { display: flex; flex-direction: column; gap: 12px; }
 .pal-set-row { display: flex; align-items: center; gap: 14px; }
 .pal-set-row .segmented { flex: 1; }
+
+/* ---------- Synchronisation ---------- */
+.sync-card { display: flex; flex-direction: column; gap: 10px; }
+.sync-card p { margin: 0; }
+.sync-who { display: flex; flex-direction: column; gap: 2px; }
+.sync-form { display: flex; gap: 8px; }
+.sync-form input { flex: 1; min-width: 0; }
+.sync-form .btn { margin: 0; flex: none; padding: 0 16px; }
+.sync-msg { color: var(--warm); }
