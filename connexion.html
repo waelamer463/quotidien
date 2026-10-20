@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="fr" data-dir="polaire" data-mode="sombre">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#070B16">
+  <title>Connexion · Quotidien</title>
+  <script>
+    try { const t = JSON.parse(localStorage.getItem('quotidien:theme')); if (t) { document.documentElement.dataset.dir = t.dir || 'polaire'; if (t.mode && t.mode !== 'auto') document.documentElement.dataset.mode = t.mode; } } catch {}
+  </script>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body { padding: calc(28px + env(safe-area-inset-top)) 20px 40px; }
+    main { max-width: 460px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+    h1 { margin: 0; font-size: 28px; letter-spacing: -.03em; }
+    .code { font: 600 17px/1.4 var(--mono); word-break: break-all; padding: 16px; border-radius: 18px; background: var(--surface-2); border: 1px solid var(--edge); user-select: all; -webkit-user-select: all; }
+    ol { margin: 0; padding-left: 20px; color: var(--muted); line-height: 1.6; }
+    .btn { width: 100%; margin: 0; }
+    .ok { color: var(--accent); font-weight: 600; min-height: 1.4em; }
+  </style>
+</head>
+<body>
+<main id="m"></main>
+<script>
+// Le lien de l'e-mail arrive ici avec la session dans l'adresse (#access_token=…&refresh_token=…).
+const m = document.getElementById('m');
+const h = new URLSearchParams(location.hash.slice(1));
+const q = new URLSearchParams(location.search);
+const err = h.get('error_description') || q.get('error_description');
+const refresh = h.get('refresh_token');
+const access = h.get('access_token');
+history.replaceState(null, '', location.pathname); // ne pas laisser la session dans l'historique
+
+if (err || !refresh) {
+  m.innerHTML = `<h1>Lien expiré</h1>
+    <p class="muted">${err ? err.replace(/\+/g, ' ') : 'Ce lien a déjà servi ou n\'est pas complet.'}</p>
+    <p class="muted">Retourne dans Quotidien (Réglages → Synchronisation) et demande un nouvel e-mail.</p>`;
+} else {
+  m.innerHTML = `<h1>Ton code de connexion</h1>
+    <div class="code" id="c"></div>
+    <button class="btn" id="copy">Copier le code</button>
+    <p class="ok" id="ok"></p>
+    <ol>
+      <li>Reviens dans l'app <b>Quotidien</b> (Réglages → Synchronisation).</li>
+      <li>Touche « Coller », puis « Valider ».</li>
+    </ol>
+    <p class="small muted">Sur ordinateur, tu peux aussi utiliser Quotidien directement dans ce navigateur :</p>
+    <button class="btn secondary" id="here">Ouvrir Quotidien ici</button>
+    <p class="small muted">Ce code ne sert qu'une fois. Ne le partage avec personne.</p>`;
+  document.getElementById('c').textContent = refresh;
+  document.getElementById('copy').onclick = async () => {
+    try { await navigator.clipboard.writeText(refresh); document.getElementById('ok').textContent = '✓ Copié. Tu peux revenir dans l\'app.'; }
+    catch { document.getElementById('ok').textContent = 'Copie impossible : sélectionne le code et copie-le à la main.'; }
+  };
+  document.getElementById('here').onclick = () => {
+    let p = {};
+    try { p = JSON.parse(atob(access.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); } catch {}
+    localStorage.setItem('quotidien:auth', JSON.stringify({
+      email: p.email || '', user: p.sub, access, refresh, expires: Date.now() + (Number(h.get('expires_in')) || 3600) * 1000 - 60000,
+    }));
+    location.href = './#reglages';
+  };
+}
+</script>
+</body>
+</html>

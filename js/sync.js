@@ -11,6 +11,8 @@ import { getData, onChange, applyRemote, setMeta } from './storage.js';
 import { SUPABASE_URL, SUPABASE_KEY } from './sync-config.js';
 
 const AUTH_KEY = 'quotidien:auth';
+// Page ouverte par le lien de l'e-mail : elle affiche un code de connexion à coller dans l'app.
+export const LOGIN_PAGE = 'https://waelamer463.github.io/quotidien/connexion.html';
 const TABLE = 'quotidien_state';
 const PUSH_DELAY = 3000;
 const PULL_EVERY = 60000;
@@ -69,7 +71,15 @@ async function token() {
 }
 
 export async function sendCode(email) {
-  await api('/auth/v1/otp', { method: 'POST', body: { email, create_user: true } });
+  await api(`/auth/v1/otp?redirect_to=${encodeURIComponent(LOGIN_PAGE)}`, { method: 'POST', body: { email, create_user: true } });
+}
+
+// Code collé : soit le code à chiffres de l'e-mail, soit le code de connexion de la page du lien.
+export async function useCode(email, code) {
+  const c = code.trim();
+  if (/^\d{6,10}$/.test(c)) return verifyCode(email, c);
+  const json = await api('/auth/v1/token?grant_type=refresh_token', { method: 'POST', body: { refresh_token: c } });
+  keep(json, json.user?.email || email);
 }
 
 export async function verifyCode(email, code) {
