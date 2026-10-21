@@ -10,8 +10,9 @@ const T = window.__TAURI__;
 export const inApp = Boolean(T);
 const invoke = (cmd, args) => T.core.invoke(cmd, args);
 
-export const desktopPrefs = () => ({ notifications: true, widget: true, widgetPinned: true, ...getData().settings.desktop });
-export const showWidget = visible => (inApp ? invoke('set_widget', { visible }).catch(() => {}) : null);
+export const desktopPrefs = () => ({ notifications: true, widget: true, widgetPinned: true, island: true, ...getData().settings.desktop });
+export const showWindow = (label, visible) => (inApp ? invoke('set_window', { label, visible }).catch(() => {}) : null);
+export const showWidget = visible => showWindow('widget', visible);
 export const setDesktopPrefs = patch => update(d => { d.settings.desktop = { ...desktopPrefs(), ...patch }; });
 
 export const autostartEnabled = () => (inApp ? invoke('plugin:autostart|is_enabled') : Promise.resolve(false));
@@ -47,4 +48,5 @@ export function startDesktop() {
   trayTick();
   setInterval(trayTick, 1000);
   if (desktopPrefs().widget) showWidget(true);
+  if (desktopPrefs().island) showWindow('island', true);
 }

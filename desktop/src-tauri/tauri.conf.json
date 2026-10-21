@@ -66,6 +66,22 @@
           "state": "active",
           "radius": 24
         }
+      },
+      {
+        "label": "island",
+        "url": "island.html",
+        "title": "Quotidien · île",
+        "width": 236,
+        "height": 44,
+        "decorations": false,
+        "transparent": true,
+        "resizable": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "visible": false,
+        "shadow": false,
+        "focus": false,
+        "visibleOnAllWorkspaces": true
       }
     ],
     "security": {

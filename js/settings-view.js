@@ -8,7 +8,7 @@ import { renderSettings as renderPlanningSettings } from './planning-view.js';
 import { mascotSettings, setMascot, renderHead } from './mascot.js';
 import { orb } from './orb.js';
 import { renderSync } from './sync-view.js';
-import { inApp, desktopPrefs, setDesktopPrefs, autostartEnabled, setAutostart, showWidget } from './desktop.js';
+import { inApp, desktopPrefs, setDesktopPrefs, autostartEnabled, setAutostart, showWidget, showWindow } from './desktop.js';
 import { HELP } from './keys.js';
 
 export function render(el) {
@@ -47,6 +47,7 @@ export function render(el) {
       <label class="switch"><input type="checkbox" data-autostart><span>Lancer Quotidien au démarrage du Mac</span></label>
       <label class="switch"><input type="checkbox" data-notif ${desktopPrefs().notifications ? 'checked' : ''}><span>Notifications (prières, début des blocs)</span></label>
       <label class="switch"><input type="checkbox" data-widget ${desktopPrefs().widget ? 'checked' : ''}><span>Widget sur le bureau</span></label>
+      <label class="switch"><input type="checkbox" data-island ${desktopPrefs().island ? 'checked' : ''}><span>Dynamic island (en haut au centre de l'écran)</span></label>
       <p class="small muted">Vue rapide : ⌥ Espace depuis n'importe quelle app, pour ajouter une tâche ou cocher une prière.</p>
       <details><summary class="small muted">Raccourcis clavier</summary>
         <table class="keys">${HELP.map(([k, l]) => `<tr><td><kbd>${k}</kbd></td><td>${l}</td></tr>`).join('')}</table></details>
@@ -80,6 +81,7 @@ export function render(el) {
     if (ev.target.matches('[data-pal-mute]')) setMascot({ mute: !ev.target.checked });
     if (ev.target.matches('[data-notif]')) setDesktopPrefs({ notifications: ev.target.checked });
     if (ev.target.matches('[data-widget]')) { setDesktopPrefs({ widget: ev.target.checked }); showWidget(ev.target.checked); }
+    if (ev.target.matches('[data-island]')) { setDesktopPrefs({ island: ev.target.checked }); showWindow('island', ev.target.checked); }
     if (ev.target.matches('[data-autostart]')) {
       try { await setAutostart(ev.target.checked); } catch { ev.target.checked = !ev.target.checked; }
     }

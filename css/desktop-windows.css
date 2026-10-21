@@ -1,6 +1,6 @@
 /* Fenêtres secondaires de l'app Mac : widget et vue rapide (fond flouté par macOS). */
-html, body.win-widget, body.win-quick { background: transparent !important; min-height: 0; padding: 0; overflow: hidden; }
-body.win-widget, body.win-quick { -webkit-user-select: none; user-select: none; cursor: default; }
+html, body.win-widget, body.win-quick, body.win-island { background: transparent !important; min-height: 0; padding: 0; overflow: hidden; }
+body.win-widget, body.win-quick, body.win-island { -webkit-user-select: none; user-select: none; cursor: default; }
 
 .widget { height: 100vh; padding: 14px 16px 12px; display: flex; flex-direction: column; color: var(--text); }
 .w-top { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
@@ -29,3 +29,34 @@ body.win-widget, body.win-quick { -webkit-user-select: none; user-select: none; 
 .qv-habits button.on { color: var(--accent); }
 .qv-hint { margin: auto 0 0; font-size: 11.5px; color: var(--muted); }
 .qv-hint.ok { color: var(--accent); }
+
+/* ---------- Dynamic island ---------- */
+body.win-island { display: flex; justify-content: center; align-items: flex-start; height: 100vh; }
+.island { position: relative; margin-top: 0; background: #000; color: #EEF4FF; border-radius: 22px; overflow: hidden; cursor: pointer;
+  width: 236px; height: 44px; box-shadow: 0 10px 30px rgba(0, 0, 0, .35);
+  transition: width .5s cubic-bezier(.3, 1.3, .5, 1), height .5s cubic-bezier(.3, 1.3, .5, 1), border-radius .5s; }
+.island.event { width: 440px; height: 92px; border-radius: 32px; }
+.island.open { width: 460px; height: 178px; border-radius: 36px; cursor: default; }
+.isl-rest, .isl-ev, .isl-open { position: absolute; inset: 0; transition: opacity .22s; }
+.isl-ev, .isl-open { opacity: 0; pointer-events: none; transition-delay: .12s; }
+.island.event .isl-rest, .island.open .isl-rest { opacity: 0; pointer-events: none; transition-delay: 0s; }
+.island.event .isl-ev, .island.open .isl-open { opacity: 1; pointer-events: auto; }
+.isl-rest { display: flex; align-items: center; gap: 8px; padding: 0 16px 0 9px; font: 600 13px var(--sans); white-space: nowrap; }
+.isl-rest span { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.isl-rest .t { margin-left: auto; font: 600 13px var(--mono); color: var(--accent); }
+.isl-ev { display: flex; align-items: center; gap: 14px; padding: 0 18px 0 16px; }
+.ie-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.ie-text b { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ie-text small { font-size: 13px; color: #9fb0cf; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ie-act, .io-acts button { border: 0; border-radius: 14px; padding: 9px 13px; font: 600 13px var(--sans); background: rgba(255, 255, 255, .12); color: #EEF4FF; cursor: pointer; white-space: nowrap; }
+.ie-act { background: var(--accent); color: #04161A; }
+.isl-open { display: flex; flex-direction: column; gap: 12px; padding: 18px 20px 16px; }
+.io-top { display: flex; align-items: center; gap: 12px; }
+.io-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.io-main b { font-size: 16px; }
+.io-main small { font-size: 12.5px; color: #9fb0cf; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.io-clock { font: 600 26px var(--mono); color: var(--accent); }
+.io-acts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.io-acts button.main { background: var(--accent); color: #04161A; }
+.io-acts button:disabled { opacity: .4; cursor: default; }
+.io-foot { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; color: #9fb0cf; }

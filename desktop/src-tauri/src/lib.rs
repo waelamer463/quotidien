@@ -6,7 +6,7 @@
 
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, LogicalPosition, Manager, RunEvent, WindowEvent};
+use tauri::{AppHandle, LogicalPosition, LogicalSize, Manager, RunEvent, WindowEvent};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
 fn show_window(app: &AppHandle, label: &str) {
@@ -30,16 +30,34 @@ fn set_tray_title(app: AppHandle, title: String) {
     }
 }
 
-// Affiche ou masque le widget (réglage de l'app).
+// Affiche ou masque le widget ou l'île (réglages de l'app).
 #[tauri::command]
-fn set_widget(app: AppHandle, visible: bool) {
-    if let Some(w) = app.get_webview_window("widget") {
+fn set_window(app: AppHandle, label: String, visible: bool) {
+    if !["widget", "island"].contains(&label.as_str()) {
+        return;
+    }
+    if let Some(w) = app.get_webview_window(&label) {
         let _ = if visible { w.show() } else { w.hide() };
     }
 }
 
-fn toggle_widget(app: &AppHandle) {
-    if let Some(w) = app.get_webview_window("widget") {
+// Taille de l'île selon son état ; elle reste centrée juste sous la barre des menus.
+#[tauri::command]
+fn island_frame(app: AppHandle, w: f64, h: f64) {
+    if let Some(win) = app.get_webview_window("island") {
+        if let Ok(Some(m)) = win.primary_monitor() {
+            let s = m.scale_factor();
+            let area = m.work_area();
+            let x = area.position.x as f64 / s + (area.size.width as f64 / s - w) / 2.0;
+            let y = area.position.y as f64 / s + 6.0;
+            let _ = win.set_size(LogicalSize::new(w, h));
+            let _ = win.set_position(LogicalPosition::new(x, y));
+        }
+    }
+}
+
+fn toggle_window(app: &AppHandle, label: &str) {
+    if let Some(w) = app.get_webview_window(label) {
         let _ = if w.is_visible().unwrap_or(false) { w.hide() } else { w.show() };
     }
 }
@@ -82,7 +100,7 @@ pub fn run() {
                 })
                 .build(),
         )
-        .invoke_handler(tauri::generate_handler![show_main, set_tray_title, set_widget])
+        .invoke_handler(tauri::generate_handler![show_main, set_tray_title, set_window, island_frame])
         .setup(move |app| {
             let _ = app.global_shortcut().register(quick_shortcut);
             place_widget(app.handle());
@@ -90,9 +108,10 @@ pub fn run() {
             let open = MenuItem::with_id(app, "open", "Ouvrir Quotidien", true, None::<&str>)?;
             let quick = MenuItem::with_id(app, "quick", "Vue rapide (⌥ Espace)", true, None::<&str>)?;
             let widget = MenuItem::with_id(app, "widget", "Afficher / masquer le widget", true, None::<&str>)?;
+            let island = MenuItem::with_id(app, "island", "Afficher / masquer l'île", true, None::<&str>)?;
             let sep = PredefinedMenuItem::separator(app)?;
             let quit = MenuItem::with_id(app, "quit", "Quitter Quotidien", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&open, &quick, &widget, &sep, &quit])?;
+            let menu = Menu::with_items(app, &[&open, &quick, &widget, &island, &sep, &quit])?;
             TrayIconBuilder::with_id("main")
                 .icon(app.default_window_icon().unwrap().clone())
                 .tooltip("Quotidien")
@@ -101,7 +120,8 @@ pub fn run() {
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "open" => show_window(app, "main"),
                     "quick" => toggle_quick(app),
-                    "widget" => toggle_widget(app),
+                    "widget" => toggle_window(app, "widget"),
+                    "island" => toggle_window(app, "island"),
                     "quit" => app.exit(0),
                     _ => {}
                 })
