@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="fr" data-dir="polaire" data-mode="sombre">
+<head>
+  <meta charset="utf-8">
+  <title>Quotidien · widget</title>
+  <script>
+    try { const t = JSON.parse(localStorage.getItem('quotidien:theme')); if (t) { document.documentElement.dataset.dir = t.dir || 'polaire'; document.documentElement.dataset.mode = t.mode === 'clair' ? 'clair' : 'sombre'; } } catch {}
+  </script>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/desktop-windows.css">
+</head>
+<body class="win-widget">
+  <main class="widget" id="w" data-tauri-drag-region></main>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+    <radialGradient id="orbFill" cx="38%" cy="30%" r="75%"><stop offset="0" style="stop-color:var(--orb-1)"/><stop offset=".6" style="stop-color:var(--orb-2)"/><stop offset="1" style="stop-color:var(--orb-3)"/></radialGradient>
+    <radialGradient id="orbShine" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#fff" stop-opacity=".3"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  </defs></svg>
+  <script type="module" src="js/widget.js"></script>
+</body>
+</html>

@@ -3,5 +3,5 @@
 set -e
 cd "$(dirname "$0")"
 rm -rf dist && mkdir dist
-cp ../index.html ../connexion.html ../manifest.webmanifest dist/
+cp ../index.html ../connexion.html ../widget.html ../quick.html ../manifest.webmanifest dist/
 cp -R ../css ../js ../fonts ../icons dist/

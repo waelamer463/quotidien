@@ -102,7 +102,19 @@ export function save() {
   } catch (e) {
     console.error('Sauvegarde impossible', e);
   }
+  // app Mac : prévient les autres fenêtres (widget, vue rapide, fenêtre principale)
+  window.__TAURI__?.event.emit('quotidien:data', { from: WINDOW }).catch(() => {});
 }
+
+// Une autre fenêtre (ou un autre onglet) a modifié les données : on les relit.
+const WINDOW = window.__TAURI__?.webviewWindow?.getCurrentWebviewWindow?.().label || 'web';
+function reloadFromOtherWindow() {
+  data = load();
+  for (const k of Object.keys(data)) if (!SKIP.has(k)) cache[k] = serial(k, data[k]);
+  listeners.forEach(f => f({ remote: true, fromWindow: true }));
+}
+window.addEventListener('storage', e => { if (e.key === KEY) reloadFromOtherWindow(); });
+window.__TAURI__?.event.listen('quotidien:data', e => { if (e.payload?.from !== WINDOW) reloadFromOtherWindow(); });
 
 const listeners = [];
 export const onChange = fn => listeners.push(fn);

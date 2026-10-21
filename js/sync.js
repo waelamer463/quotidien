@@ -202,8 +202,8 @@ export async function pushAll() {
 
 export function startSync() {
   if (!configured()) return;
-  onChange(({ remote } = {}) => {
-    if (remote || !session()) return;
+  onChange(({ remote, fromWindow } = {}) => {
+    if ((remote && !fromWindow) || !session()) return; // un changement fait dans le widget doit aussi partir
     clearTimeout(pushTimer);
     pushTimer = setTimeout(syncNow, PUSH_DELAY);
   });

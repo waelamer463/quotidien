@@ -10,7 +10,8 @@ const T = window.__TAURI__;
 export const inApp = Boolean(T);
 const invoke = (cmd, args) => T.core.invoke(cmd, args);
 
-export const desktopPrefs = () => ({ notifications: true, ...getData().settings.desktop });
+export const desktopPrefs = () => ({ notifications: true, widget: true, widgetPinned: true, ...getData().settings.desktop });
+export const showWidget = visible => (inApp ? invoke('set_widget', { visible }).catch(() => {}) : null);
 export const setDesktopPrefs = patch => update(d => { d.settings.desktop = { ...desktopPrefs(), ...patch }; });
 
 export const autostartEnabled = () => (inApp ? invoke('plugin:autostart|is_enabled') : Promise.resolve(false));
@@ -45,4 +46,5 @@ export function startDesktop() {
   document.body.prepend(drag);
   trayTick();
   setInterval(trayTick, 1000);
+  if (desktopPrefs().widget) showWidget(true);
 }

@@ -1,16 +1,25 @@
-// App Mac de Quotidien : la même app web, dans une vraie fenêtre, avec une icône dans la
-// barre des menus (chrono en cours), le lancement au démarrage et les notifications.
+// App Mac de Quotidien : la même app web, dans une vraie fenêtre, avec
+//   - une icône dans la barre des menus (chrono en cours) ;
+//   - un widget de bureau flottant (fenêtre « widget ») ;
+//   - une vue rapide ouverte par ⌥ Espace depuis n'importe quelle app (fenêtre « quick ») ;
+//   - le lancement au démarrage et les notifications.
 
-use tauri::menu::{Menu, MenuItem};
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
-use tauri::{AppHandle, Manager, RunEvent, WindowEvent};
+use tauri::{AppHandle, LogicalPosition, Manager, RunEvent, WindowEvent};
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 
-fn show_main(app: &AppHandle) {
-    if let Some(w) = app.get_webview_window("main") {
+fn show_window(app: &AppHandle, label: &str) {
+    if let Some(w) = app.get_webview_window(label) {
         let _ = w.show();
         let _ = w.unminimize();
         let _ = w.set_focus();
     }
+}
+
+#[tauri::command]
+fn show_main(app: AppHandle) {
+    show_window(&app, "main");
 }
 
 // Texte à côté de l'icône dans la barre des menus (ex. le chrono « 1:42 »).
@@ -21,41 +30,94 @@ fn set_tray_title(app: AppHandle, title: String) {
     }
 }
 
+// Affiche ou masque le widget (réglage de l'app).
+#[tauri::command]
+fn set_widget(app: AppHandle, visible: bool) {
+    if let Some(w) = app.get_webview_window("widget") {
+        let _ = if visible { w.show() } else { w.hide() };
+    }
+}
+
+fn toggle_widget(app: &AppHandle) {
+    if let Some(w) = app.get_webview_window("widget") {
+        let _ = if w.is_visible().unwrap_or(false) { w.hide() } else { w.show() };
+    }
+}
+
+fn toggle_quick(app: &AppHandle) {
+    if let Some(w) = app.get_webview_window("quick") {
+        if w.is_visible().unwrap_or(false) {
+            let _ = w.hide();
+        } else {
+            let _ = w.center();
+            show_window(app, "quick");
+        }
+    }
+}
+
+// Widget en bas à droite de l'écran principal.
+fn place_widget(app: &AppHandle) {
+    if let Some(w) = app.get_webview_window("widget") {
+        if let Ok(Some(m)) = w.primary_monitor() {
+            let scale = m.scale_factor();
+            let size = m.size().to_logical::<f64>(scale);
+            let _ = w.set_position(LogicalPosition::new(size.width - 310.0 - 24.0, size.height - 236.0 - 96.0));
+        }
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let quick_shortcut = Shortcut::new(Some(Modifiers::ALT), Code::Space);
+
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, None))
         .plugin(tauri_plugin_notification::init())
-        .invoke_handler(tauri::generate_handler![set_tray_title])
-        .setup(|app| {
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(move |app, shortcut, event| {
+                    if shortcut == &quick_shortcut && event.state() == ShortcutState::Pressed {
+                        toggle_quick(app);
+                    }
+                })
+                .build(),
+        )
+        .invoke_handler(tauri::generate_handler![show_main, set_tray_title, set_widget])
+        .setup(move |app| {
+            let _ = app.global_shortcut().register(quick_shortcut);
+            place_widget(app.handle());
+
             let open = MenuItem::with_id(app, "open", "Ouvrir Quotidien", true, None::<&str>)?;
+            let quick = MenuItem::with_id(app, "quick", "Vue rapide (⌥ Espace)", true, None::<&str>)?;
+            let widget = MenuItem::with_id(app, "widget", "Afficher / masquer le widget", true, None::<&str>)?;
+            let sep = PredefinedMenuItem::separator(app)?;
             let quit = MenuItem::with_id(app, "quit", "Quitter Quotidien", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&open, &quit])?;
+            let menu = Menu::with_items(app, &[&open, &quick, &widget, &sep, &quit])?;
             TrayIconBuilder::with_id("main")
                 .icon(app.default_window_icon().unwrap().clone())
                 .tooltip("Quotidien")
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id.as_ref() {
-                    "open" => show_main(app),
+                    "open" => show_window(app, "main"),
+                    "quick" => toggle_quick(app),
+                    "widget" => toggle_widget(app),
                     "quit" => app.exit(0),
                     _ => {}
                 })
                 .on_tray_icon_event(|tray, event| {
                     if let TrayIconEvent::Click { button: MouseButton::Left, button_state: MouseButtonState::Up, .. } = event {
-                        show_main(tray.app_handle());
+                        show_window(tray.app_handle(), "main");
                     }
                 })
                 .build(app)?;
             Ok(())
         })
-        // fermer la fenêtre la cache seulement : l'app reste dans la barre des menus
+        // fermer une fenêtre la cache seulement : l'app reste dans la barre des menus
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
-                if window.label() == "main" {
-                    api.prevent_close();
-                    let _ = window.hide();
-                }
+                api.prevent_close();
+                let _ = window.hide();
             }
         })
         .build(tauri::generate_context!())
@@ -64,7 +126,7 @@ pub fn run() {
     app.run(|app, event| {
         // clic sur l'icône du Dock quand la fenêtre est cachée
         if let RunEvent::Reopen { .. } = event {
-            show_main(app);
+            show_window(app, "main");
         }
     });
 }
