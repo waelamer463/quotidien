@@ -10,6 +10,8 @@
 import { getData, onChange, applyRemote, setMeta } from './storage.js';
 import { SUPABASE_URL, SUPABASE_KEY } from './sync-config.js';
 import { ask } from './dialog.js';
+import { widgetSummary } from './widget-summary.js';
+import { dateKey } from './util.js';
 
 const AUTH_KEY = 'quotidien:auth';
 // Page ouverte par le lien de l'e-mail : elle affiche un code de connexion à coller dans l'app.
@@ -107,9 +109,14 @@ async function pushNow(tok) {
   const now = new Date().toISOString();
   await api(`/rest/v1/${TABLE}?on_conflict=user_id`, {
     method: 'POST', token: tok, headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
-    body: { user_id: s.user, data: getData(), updated_at: now },
+    body: { user_id: s.user, data: { ...getData(), widget: safeSummary() }, updated_at: now },
   });
   setMeta({ syncedAt: now });
+}
+
+// Résumé pour le widget iPhone (jamais bloquant pour la synchro).
+function safeSummary() {
+  try { return widgetSummary(); } catch (e) { console.warn('Résumé du widget impossible', e); return null; }
 }
 
 // Parties de `remote` plus récentes que les nôtres, et s'il nous reste des parties plus récentes.
@@ -118,7 +125,7 @@ export function diff(local, remote) {
   const take = {};
   let localNewer = false;
   for (const k of new Set([...Object.keys(local), ...Object.keys(remote)])) {
-    if (k === 'meta' || k === 'version') continue;
+    if (k === 'meta' || k === 'version' || k === 'widget') continue;
     if ((rt[k] || 0) > (lt[k] || 0) && k in remote) take[k] = remote[k];
     else if ((lt[k] || 0) > (rt[k] || 0)) localNewer = true;
   }
@@ -139,7 +146,10 @@ export async function syncNow() {
     else {
       const { take, times, localNewer } = diff(getData(), row.data);
       applyRemote(take, times, row.updated_at);
-      if (localNewer) await pushNow(tok);
+      // on renvoie aussi si le résumé du widget date d'hier ou a plus de 15 min
+      const w = row.data.widget;
+      const stale = !w || w.date !== dateKey() || Date.now() - Date.parse(w.at) > 15 * 60000;
+      if (localNewer || stale) await pushNow(tok);
     }
     setStatus({ state: 'ok', at: Date.now(), error: '' });
   } catch (e) {
@@ -170,7 +180,7 @@ function adoptRow(row) {
   const rt = row.data.meta?.keyTimes || {};
   const parts = {}, times = {};
   for (const [k, v] of Object.entries(row.data)) {
-    if (k === 'meta' || k === 'version') continue;
+    if (k === 'meta' || k === 'version' || k === 'widget') continue;
     parts[k] = v;
     times[k] = rt[k] || 1;
   }

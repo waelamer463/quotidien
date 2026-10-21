@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="fr" data-dir="polaire" data-mode="sombre">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#070B16">
+  <title>Widget iPhone · Quotidien</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body { padding: calc(20px + env(safe-area-inset-top)) 18px 50px; }
+    main { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+    h1 { margin: 0; font-size: 28px; letter-spacing: -.03em; }
+    ol { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 10px; line-height: 1.5; }
+    ol b { color: var(--text); }
+    li { color: var(--muted); }
+    .btn { width: 100%; margin: 0; }
+    .ok { color: var(--accent); font-weight: 600; min-height: 1.4em; margin: 0; }
+    .back { color: var(--accent); text-decoration: none; font-weight: 600; }
+  </style>
+</head>
+<body>
+<main>
+  <a class="back" href="./#reglages">‹ Retour à Quotidien</a>
+  <h1>Le widget iPhone</h1>
+  <p class="muted">La mascotte, le bloc en cours, ta prochaine tâche, la prochaine prière et le chrono, directement sur ton écran d'accueil.</p>
+  <button class="btn" id="copy">1. Copier le script</button>
+  <p class="ok" id="ok"></p>
+  <ol>
+    <li>Installe l'app gratuite <b>Scriptable</b> depuis l'App Store.</li>
+    <li>Ouvre Scriptable, touche <b>+</b> en haut à droite, puis colle le script (appui long → Coller).</li>
+    <li>Touche le titre « Untitled Script » en haut et renomme-le <b>Quotidien</b>, puis <b>Done</b>.</li>
+    <li>Touche le script pour le lancer : tape ton e-mail, ouvre le lien reçu, touche « Copier le code », reviens dans Scriptable et colle-le.</li>
+    <li>Sur l'écran d'accueil : appui long sur un espace vide → <b>Modifier</b> → <b>Ajouter un widget</b> → <b>Scriptable</b> → choisis la taille <b>moyenne</b> (ou petite) → <b>Ajouter le widget</b>.</li>
+    <li>Appui long sur le widget → <b>Modifier le widget</b> → <b>Script</b> : choisis <b>Quotidien</b>.</li>
+  </ol>
+  <p class="small muted">Le widget se met à jour environ toutes les 15 minutes (c'est iOS qui décide). Le chrono, lui, défile en direct.</p>
+</main>
+<script>
+document.getElementById('copy').onclick = async () => {
+  const ok = document.getElementById('ok');
+  try {
+    const code = await (await fetch('scriptable/Quotidien.js', { cache: 'no-cache' })).text();
+    await navigator.clipboard.writeText(code);
+    ok.textContent = '✓ Script copié. Passe à l\'étape suivante.';
+  } catch { ok.textContent = 'Copie impossible : réessaie dans Safari.'; }
+};
+</script>
+</body>
+</html>

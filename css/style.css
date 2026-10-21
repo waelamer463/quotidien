@@ -1493,3 +1493,5 @@ body.desktop #rail { padding-top: 40px; }
 table.keys { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; }
 table.keys td { padding: 6px 4px; border-top: 1px solid var(--line); }
 table.keys kbd { font: 600 12px var(--mono); background: var(--surface-2); border-radius: 6px; padding: 2px 7px; }
+.sync-widget { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--line); color: inherit; text-decoration: none; }
+.sync-widget .grow { display: flex; flex-direction: column; }

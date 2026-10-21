@@ -33,6 +33,7 @@ export function renderSync(el) {
         <p class="sync-who"><b>${esc(who)}</b><span class="small muted" data-sync-status>${statusLine()}</span></p>
         <p class="small muted">Tes données sont les mêmes sur tous les appareils connectés à ce compte. L'app marche aussi hors ligne.</p>
         <div class="row2"><button class="btn small" data-sync-now>Synchroniser</button><button class="btn small secondary" data-sync-out>Se déconnecter</button></div>
+        <a class="row-link sync-widget" href="widget-iphone.html"><span class="grow"><b>Widget iPhone</b><span class="small muted">La mascotte et ta journée sur l'écran d'accueil</span></span><span class="chev-txt">›</span></a>
         <details class="sync-fix"><summary class="small muted">Dépannage</summary>
           <p class="small muted">Si un appareil n'a pas les bonnes données : sur l'appareil qui a les bonnes, touche « Envoyer ». Puis sur l'autre, « Récupérer ».</p>
           <div class="row2"><button class="btn small secondary" data-sync-push>Envoyer cet appareil</button><button class="btn small secondary" data-sync-pull>Récupérer le compte</button></div>
