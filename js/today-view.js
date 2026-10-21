@@ -11,6 +11,7 @@ import { upcoming, daysUntil } from './exams-model.js';
 import { examCard } from './exams-view.js';
 import { homeCard } from './review-view.js';
 import { stripHTML } from './mascot.js';
+import { syncLost } from './sync.js';
 import { SHORTCUT_URL, parse, apply } from './health-import.js';
 import { openSheet } from './sheet.js';
 import { todoSection, handleTodoClick, bindQuick, taskBlocks } from './todo-view.js';
@@ -99,6 +100,9 @@ export function render(el) {
     </div>`}
 
     ${day === today ? stripHTML() : ''}
+    ${day === today && syncLost() ? `<a class="card banner warn row-link" href="#reglages">
+      <span class="grow"><strong>Synchronisation en pause</strong>
+        <span class="small muted">Cet appareil a été déconnecté. Touche ici pour le reconnecter (Réglages → Synchronisation).</span></span>${icon('right', 'chev')}</a>` : ''}
     ${day === today ? nowCard(built.items) : ''}
     ${day === today ? upcoming().filter(x => daysUntil(x.date) <= 60).slice(0, rail ? 1 : 2).map(x => examCard(x, true)).join('') : ''}
     ${day === today ? homeCard(today) : ''}

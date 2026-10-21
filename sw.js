@@ -1,7 +1,7 @@
 // Stratégie "réseau d'abord" : en ligne, tu reçois toujours la dernière version ;
 // hors ligne, l'app se charge depuis le cache.
 
-const CACHE = 'quotidien-v39';
+const CACHE = 'quotidien-v40';
 const FILES = [
   './',
   'index.html',

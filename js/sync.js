@@ -57,7 +57,7 @@ async function api(path, { method = 'GET', body, token, headers = {} } = {}) {
 }
 
 function keep(json, email, fresh = false) {
-  if (fresh) setMeta({ syncedAt: null }); // nouvelle connexion : on refait le premier branchement
+  if (fresh) { setMeta({ syncedAt: null }); localStorage.removeItem('quotidien:sync-lost'); } // nouvelle connexion : premier branchement
   saveSession({
     email: email || json.user?.email, user: json.user?.id, access: json.access_token, refresh: json.refresh_token,
     expires: Date.now() + (json.expires_in || 3600) * 1000 - 60000,
@@ -65,13 +65,27 @@ function keep(json, email, fresh = false) {
 }
 
 // Jeton valide (rafraîchi si besoin), ou null si déconnecté.
-async function token() {
+// Le renouvellement ne se fait que quand l'app est à l'écran : sur iPhone, une app mise en
+// pause au milieu du renouvellement perdrait la nouvelle clé et serait déconnectée.
+let refreshing = null;
+async function token(force = false) {
   const s = session();
   if (!s) return null;
-  if (Date.now() < s.expires) return s.access;
-  const json = await api('/auth/v1/token?grant_type=refresh_token', { method: 'POST', body: { refresh_token: s.refresh } });
-  keep(json, s.email);
-  return json.access_token;
+  if (!force && Date.now() < s.expires) return s.access;
+  if (document.hidden) { const e = new Error('en attente'); e.deferred = true; throw e; }
+  refreshing ??= api('/auth/v1/token?grant_type=refresh_token', { method: 'POST', body: { refresh_token: s.refresh } })
+    .then(json => { keep(json, s.email); return json.access_token; })
+    .finally(() => { refreshing = null; });
+  return refreshing;
+}
+
+// Appel avec jeton ; si le serveur refuse le jeton (expiré plus tôt que prévu), on le renouvelle une fois.
+async function authed(fn) {
+  try { return await fn(await token()); }
+  catch (e) {
+    if (e.status !== 401) throw e;
+    return fn(await token(true));
+  }
 }
 
 export async function sendCode(email) {
@@ -91,7 +105,10 @@ export async function verifyCode(email, code) {
   keep(json, email, true);
 }
 
+export const syncLost = () => !session() && localStorage.getItem('quotidien:sync-lost') === '1';
+
 export function signOut() {
+  localStorage.removeItem('quotidien:sync-lost');
   saveSession(null);
   setMeta({ syncedAt: null });
   setStatus({ state: 'off', at: null, error: '' });
@@ -139,23 +156,25 @@ export async function syncNow() {
   busy = true;
   setStatus({ state: 'syncing' });
   try {
-    const tok = await token();
-    const row = await fetchRemote(tok);
-    if (!row) await pushNow(tok);
-    else if (!getData().meta?.syncedAt) await firstLink(row, tok);
+    const row = await authed(fetchRemote);
+    if (!row) await authed(pushNow);
+    else if (!getData().meta?.syncedAt) await firstLink(row);
     else {
       const { take, times, localNewer } = diff(getData(), row.data);
       applyRemote(take, times, row.updated_at);
       // on renvoie aussi si le résumé du widget date d'hier ou a plus de 15 min
       const w = row.data.widget;
       const stale = !w || w.date !== dateKey() || Date.now() - Date.parse(w.at) > 15 * 60000;
-      if (localNewer || stale) await pushNow(tok);
+      if (localNewer || stale) await authed(pushNow);
     }
     setStatus({ state: 'ok', at: Date.now(), error: '' });
   } catch (e) {
-    if (e.status === 401 || e.status === 400 && /refresh/i.test(e.message)) {
+    if (e.deferred) setStatus({ state: 'ok' }); // reprendra au retour dans l'app
+    // déconnexion seulement si le serveur refuse vraiment la clé de renouvellement
+    else if (e.status === 400 && /refresh|invalid|revoked|already used/i.test(e.message)) {
       saveSession(null);
       setMeta({ syncedAt: null });
+      localStorage.setItem('quotidien:sync-lost', '1');
       setStatus({ state: 'off', error: 'Session terminée : reconnecte cet appareil avec un nouveau lien.' });
     }
     else setStatus({ state: navigator.onLine ? 'error' : 'offline', error: e.message });
@@ -166,14 +185,14 @@ export async function syncNow() {
 
 // Premier branchement d'un appareil sur un compte qui a déjà des données.
 const hasData = d => Boolean(d.tasks?.length || Object.keys(d.log || {}).length || d.sessions?.length || d.exams?.length);
-async function firstLink(row, tok) {
+async function firstLink(row) {
   if (!hasData(getData())) return adoptRow(row);
   const useAccount = await ask({
     title: 'Ton compte a déjà des données',
     text: 'Utiliser celles du compte (cet appareil sera remplacé), ou garder celles de cet appareil (le compte sera remplacé) ?',
     ok: 'Utiliser le compte', cancel: 'Garder cet appareil', dismiss: false,
   });
-  return useAccount ? adoptRow(row) : pushNow(tok);
+  return useAccount ? adoptRow(row) : authed(pushNow);
 }
 
 function adoptRow(row) {
@@ -189,13 +208,13 @@ function adoptRow(row) {
 
 // Le compte a-t-il déjà des données ?
 export async function remoteExists() {
-  const row = await fetchRemote(await token());
+  const row = await authed(fetchRemote);
   return row ? row.data : null;
 }
 
 // Remplace tout l'appareil par les données du compte.
 export async function adoptRemote() {
-  const row = await fetchRemote(await token());
+  const row = await authed(fetchRemote);
   if (!row) return false;
   adoptRow(row);
   setStatus({ state: 'ok', at: Date.now(), error: '' });
@@ -204,7 +223,7 @@ export async function adoptRemote() {
 
 // Envoie tout l'appareil sur le compte (écrase).
 export async function pushAll() {
-  await pushNow(await token());
+  await authed(pushNow);
   setStatus({ state: 'ok', at: Date.now(), error: '' });
 }
 

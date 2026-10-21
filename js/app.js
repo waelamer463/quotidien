@@ -13,7 +13,7 @@ import { renderSky } from './sky.js';
 import { dailyCheck } from './revision-plan.js';
 import { watchFeedback } from './revision-feedback.js';
 import { startMascot, renderHead } from './mascot.js';
-import { startSync } from './sync.js';
+import { startSync, onStatus, syncLost } from './sync.js';
 import { initKeys } from './keys.js';
 import { startDesktop } from './desktop.js';
 
@@ -161,6 +161,8 @@ tick();
 render();
 startMascot();
 startSync();
+// synchro interrompue : on affiche tout de suite le bandeau sur Aujourd'hui
+onStatus(s => { if (s.state === 'off' && syncLost() && route().tab === 'aujourdhui') render(); });
 startDesktop();
 // données reçues d'un autre appareil : on redessine (sauf si tu es en train d'écrire)
 onChange(({ remote } = {}) => {
