@@ -1445,3 +1445,51 @@ body.pal-reduced .es-mascot { display: none; }
 .sync-msg { color: var(--warm); }
 .sync-fix summary { cursor: pointer; padding: 4px 0; }
 .sync-fix p { margin: 6px 0 10px !important; }
+
+/* ---------- Grand écran (ordinateur) ---------- */
+.tabbar a.side-only, #rail[hidden] { display: none; }
+body.wide { padding: 0 392px 56px 256px; }
+body.wide.rail-off { padding-right: 40px; }
+body.wide .topbar-row, body.wide .sky, body.wide .view { max-width: 860px; }
+body.wide .view { padding-top: 18px; }
+body.wide .head-btn { display: none; }
+/* barre latérale */
+body.wide .tabbar {
+  left: 16px; top: 16px; bottom: 16px; transform: none; width: 220px; height: auto;
+  display: flex; flex-direction: column; gap: 2px; padding: 16px 10px; border-radius: 28px;
+}
+body.wide .tabbar::before { content: 'Quotidien'; font-size: 19px; font-weight: 700; letter-spacing: -.02em; color: var(--text); padding: 4px 14px 16px; }
+body.wide .tab-pill { display: none; }
+body.wide .tabbar a { flex-direction: row; justify-content: flex-start; gap: 12px; padding: 11px 14px; border-radius: 16px; font-size: 14.5px; font-weight: 600; }
+body.wide .tabbar a .ic { width: 20px; height: 20px; }
+body.wide .tabbar a:hover { background: var(--surface); color: var(--text); }
+body.wide .tabbar a.active { background: var(--accent-soft); color: var(--accent); }
+body.wide .tabbar a.side-only { display: flex; margin-top: auto; }
+body.desktop.wide .tabbar a[data-key]::after { content: attr(data-key); margin-left: auto; font: 500 11px var(--mono); color: var(--muted); opacity: .8; }
+/* colonne « Maintenant » */
+#rail {
+  position: fixed; top: 0; right: 0; bottom: 0; width: 372px; z-index: 8; overflow-y: auto; overscroll-behavior: contain;
+  padding: calc(22px + env(safe-area-inset-top)) 18px 40px; border-left: 1px solid var(--edge);
+  background: color-mix(in srgb, var(--bg) 82%, transparent); -webkit-backdrop-filter: blur(24px); backdrop-filter: blur(24px);
+  scrollbar-width: thin;
+}
+#rail .ess-head:first-of-type { margin-top: 6px; }
+#rail .rings.four { gap: 6px; }
+#rail .prayer small { font-size: 10px; }
+/* chrono et toast centrés sur la colonne du milieu */
+body.wide #chrono-bar, body.wide #toast { left: calc(256px + (100vw - 256px - 392px) / 2); bottom: 24px; }
+body.wide.rail-off #chrono-bar, body.wide.rail-off #toast { left: calc(256px + (100vw - 296px) / 2); }
+body.wide.has-chrono { padding-bottom: 120px; }
+body.wide #pal-bubble { right: 392px; top: 76px; }
+body.wide .sheet { max-width: 560px; border-radius: 26px; margin-bottom: 24px; }
+body.wide .sheet-backdrop { align-items: center; }
+body.wide .score-chart, body.wide .heatmap { max-width: 620px; }
+body.wide #rail .ess-head:has(+ .quick), body.wide #rail .ess-head { margin-top: 18px; }
+/* app Mac : barre de titre fondue (feux tricolores en haut à gauche) */
+.drag-strip { position: fixed; top: 0; left: 0; right: 0; height: 30px; z-index: 100; }
+body.desktop.wide .tabbar { top: 40px; }
+body.desktop .topbar { padding-top: 34px; }
+body.desktop #rail { padding-top: 40px; }
+table.keys { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; }
+table.keys td { padding: 6px 4px; border-top: 1px solid var(--line); }
+table.keys kbd { font: 600 12px var(--mono); background: var(--surface-2); border-radius: 6px; padding: 2px 7px; }

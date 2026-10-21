@@ -8,11 +8,14 @@ import * as examsView from './exams-view.js';
 import * as planningView from './planning-view.js';
 import * as reviewView from './review-view.js';
 import { icon } from './icons.js';
+import { dateKey } from './util.js';
 import { renderSky } from './sky.js';
 import { dailyCheck } from './revision-plan.js';
 import { watchFeedback } from './revision-feedback.js';
 import { startMascot, renderHead } from './mascot.js';
 import { startSync } from './sync.js';
+import { initKeys } from './keys.js';
+import { startDesktop } from './desktop.js';
 
 const views = {
   aujourdhui: {
@@ -53,16 +56,39 @@ function route() {
 
 let lastHash = null;
 
+// Grand écran (ordinateur) : barre latérale, onglet au centre, colonne « Maintenant » à droite.
+const wideMQ = window.matchMedia('(min-width: 1024px)');
+export const isWide = () => wideMQ.matches;
+
+function renderCenter(el, tab, params) {
+  // sur grand écran, « Aujourd'hui » au centre = ta journée (la colonne de droite montre le reste)
+  if (isWide() && tab === 'aujourdhui') { planningView.render(el, ['jour', dateKey()]); return 'Aujourd\'hui'; }
+  return views[tab].render(el, params);
+}
+
+function renderRail() {
+  const rail = document.getElementById('rail');
+  const on = isWide() && !document.body.classList.contains('rail-off');
+  document.body.classList.toggle('wide', isWide());
+  rail.hidden = !on;
+  if (!on) { rail.innerHTML = ''; rail.onclick = null; return; }
+  rail.onclick = rail.onkeydown = rail.onchange = null;
+  todayView.render(rail);
+}
+
 function render() {
   const { tab, params } = route();
   const el = document.getElementById('view');
   el.onclick = el.onkeydown = el.onchange = null;
-  const title = views[tab].render(el, params);
+  document.body.classList.toggle('wide', isWide());
+  const title = renderCenter(el, tab, params);
+  renderRail();
   // petite transition quand on change d'écran (pas lors d'un simple rafraîchissement)
   if (lastHash !== null && lastHash !== location.hash) { el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter'); }
   lastHash = location.hash;
   document.getElementById('view-title').textContent = title || views[tab].title;
-  const tabs = [...document.querySelectorAll('.tabbar a')];
+  const tabs = [...document.querySelectorAll('.tabbar a:not(.side-only)')];
+  document.querySelectorAll('.tabbar a.side-only').forEach(a => a.classList.toggle('active', a.dataset.tab === tab));
   tabs.forEach(a => a.classList.toggle('active', a.dataset.tab === tab));
   const i = tabs.findIndex(a => a.dataset.tab === tab);
   const bar = document.querySelector('.tabbar');
@@ -77,7 +103,7 @@ function render() {
   head.innerHTML = icon(inSettings ? 'left' : 'settings');
   renderSky(document.querySelector('.topbar'));
   renderHead();
-  if (!['reglages', 'chrono', 'bilan'].includes(tab)) update(d => { d.settings.lastTab = tab; });
+  if (!['reglages', 'chrono', 'bilan'].includes(tab) && getData().settings.lastTab !== tab) update(d => { d.settings.lastTab = tab; });
   chronoView.renderBar();
 }
 
@@ -87,6 +113,9 @@ function renderDate() {
 }
 
 applyTheme();
+// App Mac (Tauri) : raccourcis affichés, pas de mode hors ligne par service worker (fichiers déjà dans l'app)
+export const inDesktopApp = Boolean(window.__TAURI__);
+document.body.classList.toggle('desktop', inDesktopApp);
 document.querySelectorAll('[data-icon]').forEach(s => { s.outerHTML = icon(s.dataset.icon); });
 
 // Le ciel et la date se mettent à jour chaque minute (et au retour dans l'app).
@@ -106,12 +135,33 @@ document.addEventListener('visibilitychange', () => {
 });
 
 window.addEventListener('hashchange', render);
+wideMQ.addEventListener('change', render);
+
+// Grand écran : une action dans une colonne met à jour l'autre.
+let lastPanel = 'center';
+document.addEventListener('pointerdown', e => { lastPanel = e.target.closest('#rail') ? 'rail' : 'center'; }, true);
+let crossTimer = null;
+onChange(({ remote } = {}) => {
+  if (remote || !isWide()) return;
+  clearTimeout(crossTimer);
+  crossTimer = setTimeout(() => {
+    if (document.activeElement?.closest?.('input, textarea')) return;
+    if (lastPanel === 'rail') {
+      const { tab, params } = route();
+      const el = document.getElementById('view');
+      renderCenter(el, tab, params);
+    } else renderRail();
+  }, 60);
+});
+export const toggleRail = () => { document.body.classList.toggle('rail-off'); renderRail(); };
+initKeys({ toggleRail });
 dailyCheck();
 watchFeedback();
 tick();
 render();
 startMascot();
 startSync();
+startDesktop();
 // données reçues d'un autre appareil : on redessine (sauf si tu es en train d'écrire)
 onChange(({ remote } = {}) => {
   if (!remote) return;
@@ -121,7 +171,7 @@ onChange(({ remote } = {}) => {
 requestPersistence();
 
 // ?nosw : désactive le mode hors ligne (tests automatisés uniquement)
-if ('serviceWorker' in navigator && !location.search.includes('nosw')) {
+if ('serviceWorker' in navigator && !location.search.includes('nosw') && !inDesktopApp) {
   // Quand une nouvelle version prend le relais, on recharge une fois pour l'afficher.
   const hadController = Boolean(navigator.serviceWorker.controller);
   let reloaded = false;

@@ -15,6 +15,7 @@ import { dayScore } from './insights.js';
 import { upcoming, daysUntil, examName } from './exams-model.js';
 import { goalOf, goalProgress } from './weekly.js';
 import { weekStart, dayLog } from './essentials.js';
+import { notify } from './desktop.js';
 
 const PHRASES = {
   hello_morning: ['Bonjour ! On commence doucement ?', 'Nouvelle journée, nouvelle page.', 'Bien dormi ? Je t\'ai préparé la journée.', 'Salut ! Un petit coup d\'œil au planning ?'],
@@ -183,6 +184,8 @@ function refresh() {
   if (state.face === 'rappel' && state.id && !seenRappel.has(state.id)) {
     seenRappel.add(state.id);
     say(state.key, state.vars, { face: 'rappel' });
+    notify(state.vars.prayer ? `${state.vars.prayer} dans ${state.vars.min} min` : `${state.vars.block} dans ${state.vars.min} min`,
+      state.vars.prayer ? 'Prépare-toi pour la prière.' : 'Ton prochain bloc commence bientôt.');
   }
   if (prev !== state.face) {
     document.querySelectorAll('.pal-strip .pal-orb').forEach(b => { b.innerHTML = orb(64, state.face); react(b.querySelector('.orb'), state.face); });

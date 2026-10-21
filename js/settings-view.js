@@ -8,6 +8,8 @@ import { renderSettings as renderPlanningSettings } from './planning-view.js';
 import { mascotSettings, setMascot, renderHead } from './mascot.js';
 import { orb } from './orb.js';
 import { renderSync } from './sync-view.js';
+import { inApp, desktopPrefs, setDesktopPrefs, autostartEnabled, setAutostart } from './desktop.js';
+import { HELP } from './keys.js';
 
 export function render(el) {
   const t = currentTheme();
@@ -39,6 +41,15 @@ export function render(el) {
       <p class="small muted">Réduite : seulement le petit visage en haut à droite. Sans les phrases, elle réagit toujours, mais en silence.</p>
     </div>
 
+    ${inApp ? `
+    <h2 class="section-title">Ordinateur</h2>
+    <div class="card pal-settings">
+      <label class="switch"><input type="checkbox" data-autostart><span>Lancer Quotidien au démarrage du Mac</span></label>
+      <label class="switch"><input type="checkbox" data-notif ${desktopPrefs().notifications ? 'checked' : ''}><span>Notifications (prières, début des blocs)</span></label>
+      <details><summary class="small muted">Raccourcis clavier</summary>
+        <table class="keys">${HELP.map(([k, l]) => `<tr><td><kbd>${k}</kbd></td><td>${l}</td></tr>`).join('')}</table></details>
+    </div>` : ''}
+
     <h2 class="section-title">Objectifs des essentiels</h2>
     <button class="card row-link" data-goals style="width:100%;border:none;font:inherit;color:inherit;text-align:left">
       <span class="grow"><span class="name">Calories, pas, salle, travail</span>
@@ -63,9 +74,14 @@ export function render(el) {
     else if (ev.target.closest('[data-goals]')) editGoals(el);
     else if (ev.target.closest('[data-pal-size]')) { setMascot({ size: ev.target.closest('[data-pal-size]').dataset.palSize }); renderHead(); render(el); }
   };
-  el.onchange = ev => {
+  el.onchange = async ev => {
     if (ev.target.matches('[data-pal-mute]')) setMascot({ mute: !ev.target.checked });
+    if (ev.target.matches('[data-notif]')) setDesktopPrefs({ notifications: ev.target.checked });
+    if (ev.target.matches('[data-autostart]')) {
+      try { await setAutostart(ev.target.checked); } catch { ev.target.checked = !ev.target.checked; }
+    }
   };
+  if (inApp) autostartEnabled().then(on => { const c = el.querySelector('[data-autostart]'); if (c) c.checked = on; }).catch(() => {});
   return 'Réglages';
 }
 

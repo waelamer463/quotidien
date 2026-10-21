@@ -21,6 +21,8 @@ let importMsg = '';
 
 export function render(el) {
   const today = dateKey();
+  const rail = el.id === 'rail'; // grand écran : colonne « Maintenant » à droite
+  if (rail) day = today;
   if (day > today) day = today;
   const { essentials: e, planning: p, tasks } = getData();
   const l = dayLog(day);
@@ -30,23 +32,7 @@ export function render(el) {
   const gym = gymWeek(day);
   const todo = tasks.filter(t => t.date === day);
 
-  el.innerHTML = `
-    ${day === today ? `
-    <div class="daynav compact">
-      <button class="day-back" data-act="prev" aria-label="Voir hier">${icon('left')}Hier</button>
-    </div>` : `
-    <div class="daynav">
-      <button class="icon-btn" data-act="prev" aria-label="Jour précédent">${icon('left')}</button>
-      <button class="link small" data-act="today">Revenir à aujourd'hui</button>
-      <button class="icon-btn" data-act="next" aria-label="Jour suivant">${icon('right')}</button>
-    </div>`}
-
-    ${day === today ? stripHTML() : ''}
-    ${day === today ? nowCard(built.items) : ''}
-    ${day === today ? upcoming().filter(x => daysUntil(x.date) <= 60).slice(0, 2).map(x => examCard(x, true)).join('') : ''}
-    ${day === today ? homeCard(today) : ''}
-    ${conflictNote(built.items)}
-
+  const essBlock = `
     <div class="ess-head">
       <h2 class="section-title">Essentiels</h2>
       <a class="link small" href="#reglages">Objectifs</a>
@@ -84,7 +70,7 @@ export function render(el) {
         ${gym.days.map(g => `<span class="${g.done ? 'on' : ''} ${g.key === day ? 'cur' : ''}">${'DLMMJVS'[parseKey(g.key).getDay()]}</span>`).join('')}
       </div>
     </div>
-    ${day === today ? `
+    ${day === today && !rail ? `
       <div class="card mini-card">
         <div class="mini-head"><span>Pas et calories depuis Santé</span></div>
         <div class="health-row">
@@ -94,11 +80,31 @@ export function render(el) {
         ${importMsg ? `<p class="small muted import-msg">${esc(importMsg)}</p>` : ''}
       </div>` : ''}
 
+`;
+  const todoBlock = `
     <div class="ess-head">
       <h2 class="section-title">To-do</h2>
       <span class="muted small">${todo.length ? `${todo.filter(t => t.done).length} / ${todo.length} faites` : ''}</span>
     </div>
     ${todoSection(day)}`;
+  el.innerHTML = `
+    ${rail ? '' : day === today ? `
+    <div class="daynav compact">
+      <button class="day-back" data-act="prev" aria-label="Voir hier">${icon('left')}Hier</button>
+    </div>` : `
+    <div class="daynav">
+      <button class="icon-btn" data-act="prev" aria-label="Jour précédent">${icon('left')}</button>
+      <button class="link small" data-act="today">Revenir à aujourd'hui</button>
+      <button class="icon-btn" data-act="next" aria-label="Jour suivant">${icon('right')}</button>
+    </div>`}
+
+    ${day === today ? stripHTML() : ''}
+    ${day === today ? nowCard(built.items) : ''}
+    ${day === today ? upcoming().filter(x => daysUntil(x.date) <= 60).slice(0, rail ? 1 : 2).map(x => examCard(x, true)).join('') : ''}
+    ${day === today ? homeCard(today) : ''}
+    ${conflictNote(built.items)}
+
+    ${rail ? todoBlock + essBlock : essBlock + todoBlock}`;
   bindQuick(el, day, () => render(el));
   requestAnimationFrame(() => requestAnimationFrame(() => el.querySelectorAll('.ring .v').forEach(v => {
     v.style.strokeDashoffset = v.dataset.off;

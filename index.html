@@ -43,13 +43,15 @@
   </header>
 
   <main id="view" class="view"></main>
+  <aside id="rail" class="rail" hidden aria-label="Maintenant"></aside>
 
   <nav class="tabbar" aria-label="Navigation principale">
     <span class="tab-pill" aria-hidden="true"></span>
-    <a href="#aujourdhui" data-tab="aujourdhui"><span data-icon="habits"></span><span>Aujourd'hui</span></a>
-    <a href="#planning" data-tab="planning"><span data-icon="planning"></span><span>Planning</span></a>
-    <a href="#examens" data-tab="examens"><span data-icon="course"></span><span>Examens</span></a>
-    <a href="#stats" data-tab="stats"><span data-icon="stats"></span><span>Stats</span></a>
+    <a href="#aujourdhui" data-tab="aujourdhui" data-key="⌘1"><span data-icon="habits"></span><span>Aujourd'hui</span></a>
+    <a href="#planning" data-tab="planning" data-key="⌘2"><span data-icon="planning"></span><span>Planning</span></a>
+    <a href="#examens" data-tab="examens" data-key="⌘3"><span data-icon="course"></span><span>Examens</span></a>
+    <a href="#stats" data-tab="stats" data-key="⌘4"><span data-icon="stats"></span><span>Stats</span></a>
+    <a href="#reglages" data-tab="reglages" data-key="⌘," class="side-only"><span data-icon="settings"></span><span>Réglages</span></a>
   </nav>
 
   <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>

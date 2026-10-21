@@ -1,0 +1,13 @@
+{
+  "name": "quotidien-desktop",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "tauri": "tauri",
+    "build": "tauri build --bundles app",
+    "dev": "tauri dev"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}
