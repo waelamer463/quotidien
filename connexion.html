@@ -46,7 +46,7 @@ if (err || !refresh) {
     </ol>
     <p class="small muted">Sur ordinateur, tu peux aussi utiliser Quotidien directement dans ce navigateur :</p>
     <button class="btn secondary" id="here">Ouvrir Quotidien ici</button>
-    <p class="small muted">Ce code ne sert qu'une fois. Ne le partage avec personne.</p>`;
+    <p class="small muted">Ce code ne sert qu'une fois, pour un seul appareil. Pour un autre appareil, demande un nouveau lien depuis celui-ci.</p>`;
   document.getElementById('c').textContent = refresh;
   // sur iPhone/iPad, l'app installée ne partage pas les données de Safari : seul le code compte
   if (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
@@ -64,6 +64,8 @@ if (err || !refresh) {
     localStorage.setItem('quotidien:auth', JSON.stringify({
       email: p.email || '', user: p.sub, access, refresh, expires: Date.now() + (Number(h.get('expires_in')) || 3600) * 1000 - 60000,
     }));
+    // nouvelle connexion : l'app refera le premier branchement (récupérer les données du compte)
+    try { const d = JSON.parse(localStorage.getItem('quotidien:data')); if (d) { d.meta = { ...d.meta, syncedAt: null }; localStorage.setItem('quotidien:data', JSON.stringify(d)); } } catch {}
     location.href = './#reglages';
   };
 }

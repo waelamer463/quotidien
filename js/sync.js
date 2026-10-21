@@ -54,7 +54,8 @@ async function api(path, { method = 'GET', body, token, headers = {} } = {}) {
   return json;
 }
 
-function keep(json, email) {
+function keep(json, email, fresh = false) {
+  if (fresh) setMeta({ syncedAt: null }); // nouvelle connexion : on refait le premier branchement
   saveSession({
     email: email || json.user?.email, user: json.user?.id, access: json.access_token, refresh: json.refresh_token,
     expires: Date.now() + (json.expires_in || 3600) * 1000 - 60000,
@@ -80,12 +81,12 @@ export async function useCode(email, code) {
   const c = code.trim();
   if (/^\d{6,10}$/.test(c)) return verifyCode(email, c);
   const json = await api('/auth/v1/token?grant_type=refresh_token', { method: 'POST', body: { refresh_token: c } });
-  keep(json, json.user?.email || email);
+  keep(json, json.user?.email || email, true);
 }
 
 export async function verifyCode(email, code) {
   const json = await api('/auth/v1/verify', { method: 'POST', body: { type: 'email', email, token: code.trim() } });
-  keep(json, email);
+  keep(json, email, true);
 }
 
 export function signOut() {
@@ -142,7 +143,11 @@ export async function syncNow() {
     }
     setStatus({ state: 'ok', at: Date.now(), error: '' });
   } catch (e) {
-    if (e.status === 401 || e.status === 400 && /refresh/i.test(e.message)) { saveSession(null); setStatus({ state: 'off', error: 'Session expirée : reconnecte-toi.' }); }
+    if (e.status === 401 || e.status === 400 && /refresh/i.test(e.message)) {
+      saveSession(null);
+      setMeta({ syncedAt: null });
+      setStatus({ state: 'off', error: 'Session terminée : reconnecte cet appareil avec un nouveau lien.' });
+    }
     else setStatus({ state: navigator.onLine ? 'error' : 'offline', error: e.message });
   } finally {
     busy = false;
