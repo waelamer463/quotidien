@@ -37,9 +37,12 @@ let data = load();
 // Repère les parties modifiées (pour la synchronisation). Les réglages propres à l'appareil
 // (dernier onglet, phrases récentes de la mascotte) ne comptent pas.
 const SKIP = new Set(['meta', 'version']);
-const serial = (k, v) => (k === 'settings'
-  ? JSON.stringify({ ...v, lastTab: undefined, lastExport: undefined, mascot: v.mascot && { ...v.mascot, recent: undefined, hello: undefined } })
-  : JSON.stringify(v));
+const serial = (k, v) => {
+  if (k === 'settings') return JSON.stringify({ ...v, lastTab: undefined, lastExport: undefined, mascot: v.mascot && { ...v.mascot, recent: undefined, hello: undefined } });
+  if (k === 'revision') return JSON.stringify({ ...v, lastPlan: undefined }); // date du dernier recalcul du plan
+  if (k === 'exams') return JSON.stringify(v.map(e => ({ ...e, planOver: undefined })));
+  return JSON.stringify(v);
+};
 const cache = {};
 for (const k of Object.keys(data)) if (!SKIP.has(k)) cache[k] = serial(k, data[k]);
 

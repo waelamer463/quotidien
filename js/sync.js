@@ -9,6 +9,7 @@
 
 import { getData, onChange, applyRemote, setMeta } from './storage.js';
 import { SUPABASE_URL, SUPABASE_KEY } from './sync-config.js';
+import { ask } from './dialog.js';
 
 const AUTH_KEY = 'quotidien:auth';
 // Page ouverte par le lien de l'e-mail : elle affiche un code de connexion à coller dans l'app.
@@ -133,6 +134,7 @@ export async function syncNow() {
     const tok = await token();
     const row = await fetchRemote(tok);
     if (!row) await pushNow(tok);
+    else if (!getData().meta?.syncedAt) await firstLink(row, tok);
     else {
       const { take, times, localNewer } = diff(getData(), row.data);
       applyRemote(take, times, row.updated_at);
@@ -147,16 +149,19 @@ export async function syncNow() {
   }
 }
 
-// Premier branchement d'un appareil : le compte a-t-il déjà des données ?
-export async function remoteExists() {
-  const row = await fetchRemote(await token());
-  return row ? row.data : null;
+// Premier branchement d'un appareil sur un compte qui a déjà des données.
+const hasData = d => Boolean(d.tasks?.length || Object.keys(d.log || {}).length || d.sessions?.length || d.exams?.length);
+async function firstLink(row, tok) {
+  if (!hasData(getData())) return adoptRow(row);
+  const useAccount = await ask({
+    title: 'Ton compte a déjà des données',
+    text: 'Utiliser celles du compte (cet appareil sera remplacé), ou garder celles de cet appareil (le compte sera remplacé) ?',
+    ok: 'Utiliser le compte', cancel: 'Garder cet appareil', dismiss: false,
+  });
+  return useAccount ? adoptRow(row) : pushNow(tok);
 }
 
-// Remplace tout l'appareil par les données du compte.
-export async function adoptRemote() {
-  const row = await fetchRemote(await token());
-  if (!row) return;
+function adoptRow(row) {
   const rt = row.data.meta?.keyTimes || {};
   const parts = {}, times = {};
   for (const [k, v] of Object.entries(row.data)) {
@@ -165,7 +170,21 @@ export async function adoptRemote() {
     times[k] = rt[k] || 1;
   }
   applyRemote(parts, times, row.updated_at);
+}
+
+// Le compte a-t-il déjà des données ?
+export async function remoteExists() {
+  const row = await fetchRemote(await token());
+  return row ? row.data : null;
+}
+
+// Remplace tout l'appareil par les données du compte.
+export async function adoptRemote() {
+  const row = await fetchRemote(await token());
+  if (!row) return false;
+  adoptRow(row);
   setStatus({ state: 'ok', at: Date.now(), error: '' });
+  return true;
 }
 
 // Envoie tout l'appareil sur le compte (écrase).

@@ -1443,3 +1443,5 @@ body.pal-reduced .es-mascot { display: none; }
 .sync-form .btn { margin: 0; width: 100%; }
 .sync-form .btn:only-of-type { grid-column: 1 / -1; }
 .sync-msg { color: var(--warm); }
+.sync-fix summary { cursor: pointer; padding: 4px 0; }
+.sync-fix p { margin: 6px 0 10px !important; }

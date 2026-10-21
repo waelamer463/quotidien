@@ -3,7 +3,7 @@
 import { getData } from './storage.js';
 import { esc } from './util.js';
 import { ask } from './dialog.js';
-import { configured, account, getStatus, onStatus, sendCode, useCode, signOut, syncNow, remoteExists, adoptRemote, pushAll } from './sync.js';
+import { configured, account, getStatus, onStatus, sendCode, useCode, signOut, syncNow, adoptRemote, pushAll } from './sync.js';
 
 let step = { email: '', sent: false, msg: '' };
 
@@ -32,7 +32,11 @@ export function renderSync(el) {
       ${who ? `
         <p class="sync-who"><b>${esc(who)}</b><span class="small muted" data-sync-status>${statusLine()}</span></p>
         <p class="small muted">Tes données sont les mêmes sur tous les appareils connectés à ce compte. L'app marche aussi hors ligne.</p>
-        <div class="row2"><button class="btn small" data-sync-now>Synchroniser</button><button class="btn small secondary" data-sync-out>Se déconnecter</button></div>`
+        <div class="row2"><button class="btn small" data-sync-now>Synchroniser</button><button class="btn small secondary" data-sync-out>Se déconnecter</button></div>
+        <details class="sync-fix"><summary class="small muted">Dépannage</summary>
+          <p class="small muted">Si un appareil n'a pas les bonnes données : sur l'appareil qui a les bonnes, touche « Envoyer ». Puis sur l'autre, « Récupérer ».</p>
+          <div class="row2"><button class="btn small secondary" data-sync-push>Envoyer cet appareil</button><button class="btn small secondary" data-sync-pull>Récupérer le compte</button></div>
+        </details>`
       : step.sent ? `
         <ol class="sync-steps small">
           <li>Ouvre l'e-mail envoyé à <b>${esc(step.email)}</b> (regarde aussi les spams).</li>
@@ -71,7 +75,7 @@ export function renderSync(el) {
     try {
       await useCode(step.email, code.code.value);
       step = { email: '', sent: false, msg: '' };
-      await firstLink();
+      await syncNow();
     } catch (err) {
       step.msg = /expired|invalid|not found|refresh/i.test(err.message) ? 'Code incorrect ou déjà utilisé. Demande un nouvel e-mail.' : `Connexion impossible : ${err.message}`;
     }
@@ -84,25 +88,22 @@ export function renderSync(el) {
     }
     if (e.target.closest('[data-sync-back]')) { step = { email: step.email, sent: false, msg: '' }; return renderSync(el); }
     if (e.target.closest('[data-sync-now]')) { await syncNow(); return renderSync(el); }
+    if (e.target.closest('[data-sync-push]')) {
+      if (await ask({ title: 'Envoyer cet appareil ?', text: 'Les données du compte seront remplacées par celles de cet appareil.', ok: 'Envoyer', danger: true })) {
+        try { await pushAll(); step.msg = '✓ Données envoyées sur le compte.'; } catch (err) { step.msg = `Envoi impossible : ${err.message}`; }
+        return renderSync(el);
+      }
+    }
+    if (e.target.closest('[data-sync-pull]')) {
+      if (await ask({ title: 'Récupérer le compte ?', text: 'Les données de cet appareil seront remplacées par celles du compte.', ok: 'Récupérer', danger: true })) {
+        try { step.msg = await adoptRemote() ? '✓ Données du compte récupérées.' : 'Le compte est vide.'; } catch (err) { step.msg = `Récupération impossible : ${err.message}`; }
+        return renderSync(el);
+      }
+    }
     if (e.target.closest('[data-sync-out]')) {
       if (await ask({ title: 'Se déconnecter ?', text: 'Tes données restent sur cet appareil, mais ne seront plus synchronisées.', ok: 'Se déconnecter' })) { signOut(); renderSync(el); }
     }
   };
-}
-
-// Premier branchement : que faire si le compte et l'appareil ont tous les deux des données ?
-async function firstLink() {
-  const remote = await remoteExists();
-  const d = getData();
-  const localHasData = d.tasks.length || Object.keys(d.log).length || d.sessions.length || d.exams.length;
-  if (!remote) return pushAll();
-  if (!localHasData) return adoptRemote();
-  const useAccount = await ask({
-    title: 'Ton compte a déjà des données',
-    text: 'Utiliser celles du compte (cet appareil sera remplacé), ou garder celles de cet appareil (le compte sera remplacé) ?',
-    ok: 'Utiliser le compte', cancel: 'Garder cet appareil', dismiss: false,
-  });
-  return useAccount ? adoptRemote() : pushAll();
 }
 
 function busy(form, label) {
